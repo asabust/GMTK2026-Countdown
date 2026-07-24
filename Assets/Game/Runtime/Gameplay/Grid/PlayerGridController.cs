@@ -217,7 +217,8 @@ public class PlayerGridController : GridEntity
         }
 
         Vector2Int origin = GridPosition;
-        if (numberResource == null || !numberResource.CanSpend(moveCost))
+        if (numberResource == null ||
+            !numberResource.CanSpend(moveCost, allowFatalSpend: true))
         {
             return;
         }
@@ -228,10 +229,11 @@ public class PlayerGridController : GridEntity
         }
 
         if (!numberResource.TrySpend(
-                moveCost,
-                NumberChangeReason.Move,
-                transform.position
-            ))
+            moveCost,
+            NumberChangeReason.Move,
+            transform.position,
+            allowFatalSpend: true
+        ))
         {
             gridMap.TryMoveEntity(this, origin, out _);
             return;
@@ -296,6 +298,13 @@ public class PlayerGridController : GridEntity
         moveRoutine = null;
         PlayAnimation(idleAnimationState);
         MoveCompleted?.Invoke(origin, destination);
+
+        if (numberResource != null &&
+            numberResource.CurrentValue <= numberResource.MinimumValue)
+        {
+            externalInputLocked = true;
+            GameManager.Instance?.GameOver("最后一步后数字跌破 0");
+        }
     }
 
     private void StopMovement()

@@ -30,6 +30,7 @@ public class GridObject : GridEntity
         {
             transform.position = map.GetFootprintCenterWorld(origin, Size);
         }
+
     }
 
     public void ReleaseAndDestroy()

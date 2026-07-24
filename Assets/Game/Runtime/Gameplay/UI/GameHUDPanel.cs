@@ -16,7 +16,9 @@ public class GameHUDPanel : UIPanel
     [SerializeField] private Button settingsButton;
 
     private readonly Queue<NumberDeltaPopup> popupPool = new();
+    private readonly Queue<NumberChange> pendingChanges = new();
     private readonly List<NumberDeltaPopup> activePopups = new();
+    private NumberDeltaPopup activePopup;
     private NumberResource numberResource;
     private Canvas parentCanvas;
 
@@ -91,13 +93,26 @@ public class GameHUDPanel : UIPanel
             return;
         }
 
+        pendingChanges.Enqueue(change);
+        TryPlayNextDelta();
+    }
+
+    private void TryPlayNextDelta()
+    {
+        if (activePopup != null || pendingChanges.Count == 0)
+        {
+            return;
+        }
+
+        NumberChange change = pendingChanges.Dequeue();
         NumberDeltaPopup popup = popupPool.Count > 0
             ? popupPool.Dequeue()
             : Instantiate(numberDeltaPopupPrefab, deltaPopupRoot);
 
+        activePopup = popup;
         activePopups.Add(popup);
         popup.Play(
-            change.Delta,
+            change,
             WorldToPopupPosition(change.WorldPosition + popupWorldOffset),
             RecyclePopup
         );
@@ -137,10 +152,17 @@ public class GameHUDPanel : UIPanel
         activePopups.Remove(popup);
         popup.gameObject.SetActive(false);
         popupPool.Enqueue(popup);
+        if (activePopup == popup)
+        {
+            activePopup = null;
+        }
+
+        TryPlayNextDelta();
     }
 
     private void RecycleAllPopups()
     {
+        pendingChanges.Clear();
         for (int i = activePopups.Count - 1; i >= 0; i--)
         {
             NumberDeltaPopup popup = activePopups[i];
@@ -154,6 +176,7 @@ public class GameHUDPanel : UIPanel
         }
 
         activePopups.Clear();
+        activePopup = null;
     }
 
     private void HandleSettingsClicked()

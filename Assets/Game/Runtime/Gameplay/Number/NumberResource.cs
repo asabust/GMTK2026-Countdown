@@ -40,7 +40,7 @@ public readonly struct NumberChange
 public class NumberResource : MonoBehaviour
 {
     [SerializeField, Min(1)] private int initialValue = 100;
-    [SerializeField, Min(0)] private int minimumValue;
+    [SerializeField] private int minimumValue = -1;
     [SerializeField, Min(1)] private int maximumValue = 199;
 
     public static NumberResource Instance { get; private set; }
@@ -62,7 +62,7 @@ public class NumberResource : MonoBehaviour
 
         Instance = this;
         ValidateConfiguration();
-        CurrentValue = Mathf.Clamp(initialValue, minimumValue, maximumValue);
+        CurrentValue = Mathf.Clamp(initialValue, 0, maximumValue);
     }
 
     private void OnDestroy()
@@ -73,18 +73,26 @@ public class NumberResource : MonoBehaviour
         }
     }
 
-    public bool CanSpend(int amount)
+    public bool CanSpend(int amount, bool allowFatalSpend = false)
     {
-        return amount >= 0 && CurrentValue - amount > minimumValue;
+        if (amount < 0)
+        {
+            return false;
+        }
+
+        int result = CurrentValue - amount;
+        return result > minimumValue ||
+               allowFatalSpend && result == minimumValue;
     }
 
     public bool TrySpend(
         int amount,
         NumberChangeReason reason,
-        Vector3 worldPosition
+        Vector3 worldPosition,
+        bool allowFatalSpend = false
     )
     {
-        if (!CanSpend(amount))
+        if (!CanSpend(amount, allowFatalSpend))
         {
             return false;
         }
@@ -112,11 +120,25 @@ public class NumberResource : MonoBehaviour
         ApplyValue(CurrentValue + amount, reason, worldPosition);
     }
 
+    public void TakeDamage(int amount, Vector3 worldPosition)
+    {
+        if (amount <= 0)
+        {
+            return;
+        }
+
+        ApplyValue(
+            CurrentValue - amount,
+            NumberChangeReason.Damage,
+            worldPosition
+        );
+    }
+
     public void ResetForNewRun()
     {
         ValidateConfiguration();
         ApplyValue(
-            Mathf.Clamp(initialValue, minimumValue, maximumValue),
+            Mathf.Clamp(initialValue, 0, maximumValue),
             NumberChangeReason.Other,
             transform.position
         );
@@ -151,8 +173,8 @@ public class NumberResource : MonoBehaviour
 
     private void ValidateConfiguration()
     {
-        minimumValue = Mathf.Max(0, minimumValue);
-        maximumValue = Mathf.Max(minimumValue + 1, maximumValue);
-        initialValue = Mathf.Clamp(initialValue, minimumValue + 1, maximumValue);
+        minimumValue = -1;
+        maximumValue = Mathf.Max(1, maximumValue);
+        initialValue = Mathf.Clamp(initialValue, 1, maximumValue);
     }
 }

@@ -51,6 +51,8 @@ public class GameManager : Singleton<GameManager>
     /// </summary>
     public void StartNewGame()
     {
+        FindObjectOfType<EncounterController>()?.PrepareForSceneTransition();
+        UIManager.Instance?.Close<GameOverPanel>();
         NumberResource.Instance?.ResetForNewRun();
         SetGamePhase(GamePhase.Gameplay);
         TransitionManager.Instance.TransitionTo(firstGameScene);
@@ -63,6 +65,29 @@ public class GameManager : Singleton<GameManager>
     {
         SetGamePhase(GamePhase.GameTitle);
         TransitionManager.Instance.Transition(string.Empty, titleScene);
+    }
+
+    public void GameOver(string reason)
+    {
+        SetGamePhase(GamePhase.GameOver);
+        UIManager.Instance?.Open<GameOverPanel>(
+            new GameOverRequest(
+                reason,
+                NumberResource.Instance != null
+                    ? NumberResource.Instance.CurrentValue
+                    : -1,
+                StartNewGame,
+                ReturnToTitle
+            )
+        );
+    }
+
+    public void ReturnToTitle()
+    {
+        FindObjectOfType<EncounterController>()?.PrepareForSceneTransition();
+        UIManager.Instance?.Close<GameOverPanel>();
+        SetGamePhase(GamePhase.GameTitle);
+        TransitionManager.Instance.TransitionTo(titleScene);
     }
 
 
