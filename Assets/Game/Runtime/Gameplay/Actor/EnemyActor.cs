@@ -2,7 +2,7 @@ using System;
 using UnityEngine;
 
 [RequireComponent(typeof(GridObject))]
-public class EnemyActor : MonoBehaviour
+public class EnemyActor : MonoBehaviour, IFogVisibilityResponder
 {
     [SerializeField] private EnemyDefinition definition;
     [SerializeField] private EnemyWorldUI worldUIPrefab;
@@ -15,7 +15,10 @@ public class EnemyActor : MonoBehaviour
     private EnemyWorldUI worldUI;
     private Animator characterAnimator;
     private SpriteRenderer characterSpriteRenderer;
+    private FogVisibilityTarget fogVisibilityTarget;
     private int intentIndex = -1;
+    private CellVisibility fogVisibility = CellVisibility.Unexplored;
+    private bool showingCombatInformation;
 
     public EnemyDefinition Definition => definition;
     public bool IsHealthResolved { get; private set; }
@@ -28,12 +31,25 @@ public class EnemyActor : MonoBehaviour
     public event Action HealthResolved;
     public event Action HealthChanged;
 
+    private void Awake()
+    {
+        fogVisibilityTarget = GetComponent<FogVisibilityTarget>();
+        if (fogVisibilityTarget == null)
+        {
+            fogVisibilityTarget = gameObject.AddComponent<FogVisibilityTarget>();
+        }
+
+        fogVisibilityTarget.ConfigureAsEnemy(this);
+    }
+
     private void Start()
     {
         characterAnimator = GetComponentInChildren<Animator>(true);
-        characterSpriteRenderer = GetComponentInChildren<SpriteRenderer>(true);
+        characterSpriteRenderer = characterAnimator != null
+            ? characterAnimator.GetComponent<SpriteRenderer>()
+            : GetComponentInChildren<SpriteRenderer>(true);
         EnsureWorldUI();
-        worldUI?.ShowExploration(definition != null ? definition.RewardNumber : 0);
+        ApplyFogVisibility(fogVisibilityTarget.CurrentVisibility);
     }
 
     public void FacePlayer(Vector2Int playerGridPosition)
@@ -93,6 +109,11 @@ public class EnemyActor : MonoBehaviour
 
     public void ShowLockedIntent()
     {
+        if (fogVisibility != CellVisibility.Visible)
+        {
+            return;
+        }
+
         EnsureWorldUI();
         int damage = GetCurrentIntentDamage();
         string description = CurrentIntent switch
@@ -187,6 +208,12 @@ public class EnemyActor : MonoBehaviour
 
     public void ShowCombatInformation()
     {
+        showingCombatInformation = true;
+        if (fogVisibility != CellVisibility.Visible)
+        {
+            return;
+        }
+
         EnsureWorldUI();
         worldUI?.ShowCombat(
             CurrentHP,
@@ -215,8 +242,62 @@ public class EnemyActor : MonoBehaviour
 
     public void ShowExplorationInformation()
     {
+        showingCombatInformation = false;
+        if (fogVisibility != CellVisibility.Visible)
+        {
+            return;
+        }
+
         EnsureWorldUI();
         worldUI?.ShowExploration(definition != null ? definition.RewardNumber : 0);
+    }
+
+    public void ApplyFogVisibility(CellVisibility visibility)
+    {
+        fogVisibility = visibility;
+        if (fogVisibilityTarget == null)
+        {
+            return;
+        }
+
+        switch (visibility)
+        {
+            case CellVisibility.Visible:
+                fogVisibilityTarget.SetContentVisible(true);
+                fogVisibilityTarget.SetEnemyMarkerVisible(false);
+                EnsureWorldUI();
+                if (showingCombatInformation && IsHealthResolved)
+                {
+                    worldUI?.ShowCombat(
+                        CurrentHP,
+                        ResolvedMaxHP,
+                        definition != null ? definition.RewardNumber : 0
+                    );
+                    if (HasLockedIntent)
+                    {
+                        ShowLockedIntent();
+                    }
+                }
+                else
+                {
+                    worldUI?.ShowExploration(
+                        definition != null ? definition.RewardNumber : 0
+                    );
+                }
+                break;
+
+            case CellVisibility.Explored:
+                fogVisibilityTarget.SetContentVisible(false);
+                fogVisibilityTarget.SetEnemyMarkerVisible(true);
+                worldUI?.HideAll();
+                break;
+
+            default:
+                fogVisibilityTarget.SetContentVisible(false);
+                fogVisibilityTarget.SetEnemyMarkerVisible(false);
+                worldUI?.HideAll();
+                break;
+        }
     }
 
     private void EnsureWorldUI()

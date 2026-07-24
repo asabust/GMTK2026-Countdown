@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Tilemaps;
 
@@ -21,6 +22,7 @@ public class FogOfWarSystem : MonoBehaviour
     private Texture2D fogTexture;
     private Sprite fogSprite;
     private bool isInitialized;
+    private readonly HashSet<FogVisibilityTarget> visibilityTargets = new();
 
     public int VisionRadius => visionRadius;
 
@@ -95,6 +97,7 @@ public class FogOfWarSystem : MonoBehaviour
         }
 
         isInitialized = true;
+        RefreshVisibilityTargets();
         VisionRefreshed?.Invoke();
     }
 
@@ -108,6 +111,24 @@ public class FogOfWarSystem : MonoBehaviour
             playerController.CurrentMap == gridMap)
         {
             RefreshVision(playerController.GridPosition);
+        }
+    }
+
+    public void RegisterVisibilityTarget(FogVisibilityTarget target)
+    {
+        if (target == null || !visibilityTargets.Add(target))
+        {
+            return;
+        }
+
+        RefreshVisibilityTarget(target);
+    }
+
+    public void UnregisterVisibilityTarget(FogVisibilityTarget target)
+    {
+        if (target != null)
+        {
+            visibilityTargets.Remove(target);
         }
     }
 
@@ -228,6 +249,50 @@ public class FogOfWarSystem : MonoBehaviour
         cell.Visibility = visibility;
         UpdateCellVisual(cell);
         CellVisibilityChanged?.Invoke(cell, previous, visibility);
+    }
+
+    private void RefreshVisibilityTargets()
+    {
+        visibilityTargets.RemoveWhere(target => target == null);
+        foreach (FogVisibilityTarget target in visibilityTargets)
+        {
+            RefreshVisibilityTarget(target);
+        }
+    }
+
+    private void RefreshVisibilityTarget(FogVisibilityTarget target)
+    {
+        GridEntity entity = target != null ? target.Entity : null;
+        if (entity == null ||
+            !entity.IsPlaced ||
+            entity.CurrentMap != gridMap)
+        {
+            target?.ApplyVisibility(CellVisibility.Unexplored);
+            return;
+        }
+
+        CellVisibility resolvedVisibility = CellVisibility.Unexplored;
+        foreach (Vector2Int position in entity.GetOccupiedCells())
+        {
+            GridCell cell = gridMap.GetCell(position);
+            if (cell == null)
+            {
+                continue;
+            }
+
+            if (cell.Visibility == CellVisibility.Visible)
+            {
+                resolvedVisibility = CellVisibility.Visible;
+                break;
+            }
+
+            if (cell.Visibility == CellVisibility.Explored)
+            {
+                resolvedVisibility = CellVisibility.Explored;
+            }
+        }
+
+        target.ApplyVisibility(resolvedVisibility);
     }
 
     private void UpdateCellVisual(GridCell cell)

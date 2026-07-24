@@ -51,4 +51,11 @@ public class EnemyWorldUI : MonoBehaviour
     {
         intentRoot?.SetActive(false);
     }
+
+    public void HideAll()
+    {
+        rewardRoot?.SetActive(false);
+        healthRoot?.SetActive(false);
+        intentRoot?.SetActive(false);
+    }
 }
