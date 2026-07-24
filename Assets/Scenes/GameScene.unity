@@ -280,6 +280,7 @@ GameObject:
   m_Component:
   - component: {fileID: 594751851}
   - component: {fileID: 594751850}
+  - component: {fileID: 594751852}
   m_Layer: 0
   m_Name: GridMap
   m_TagString: Untagged
@@ -303,6 +304,23 @@ MonoBehaviour:
   collisionTilemap: {fileID: 518129723}
   useCollisionTilemap: 0
   playerStartCell: {x: 0, y: 0}
+--- !u!114 &594751852
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 594751849}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 92e773712b6c4d5a902f43f4d175d1a8, type: 3}
+  m_Name:
+  m_EditorClassIdentifier:
+  visionRadius: 1
+  unexploredColor: {r: 0.025, g: 0.03, b: 0.045, a: 1}
+  exploredColor: {r: 0.04, g: 0.055, b: 0.08, a: 0.72}
+  fogSortingLayer: Fog
+  fogSortingOrder: 0
 --- !u!4 &594751851
 Transform:
   m_ObjectHideFlags: 0

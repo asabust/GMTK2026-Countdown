@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Tilemaps;
 
@@ -16,6 +17,7 @@ public class GridMap : MonoBehaviour
 
     public bool IsInitialized { get; private set; }
     public Vector2Int PlayerStartCell => playerStartCell;
+    public Tilemap GroundTilemap => groundTilemap;
 
     private void Awake()
     {
@@ -105,6 +107,22 @@ public class GridMap : MonoBehaviour
         }
 
         return cells[arrayX, arrayY];
+    }
+
+    public IEnumerable<GridCell> GetAllCells()
+    {
+        if (!IsInitialized || cells == null)
+        {
+            yield break;
+        }
+
+        for (int arrayX = 0; arrayX < width; arrayX++)
+        {
+            for (int arrayY = 0; arrayY < height; arrayY++)
+            {
+                yield return cells[arrayX, arrayY];
+            }
+        }
     }
 
     public Vector2Int WorldToCell(Vector3 worldPosition)

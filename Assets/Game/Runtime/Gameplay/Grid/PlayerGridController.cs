@@ -38,6 +38,8 @@ public class PlayerGridController : GridEntity
     public event Action<Vector2Int, Vector2Int> MoveCommitted;
     public event Action<Vector2Int, Vector2Int> MoveCompleted;
     public event Action<GridEntity, GridOccupantType> ContactRequested;
+    public event Action<GridMap> GridBound;
+    public event Action<GridMap> GridUnbound;
 
     private void Awake()
     {
@@ -121,11 +123,18 @@ public class PlayerGridController : GridEntity
         }
 
         StopMovement();
+        GridMap previousMap = gridMap;
+        if (IsPlaced)
+        {
+            previousMap.RemoveEntity(this);
+        }
+
         gridMap = null;
         boundScene = default;
         contactLocked = false;
         SetVisualsVisible(false);
         moveAction?.Disable();
+        GridUnbound?.Invoke(previousMap);
     }
 
     private void TryBindLoadedGrid()
@@ -146,7 +155,9 @@ public class PlayerGridController : GridEntity
     {
         if (gridMap != null && IsPlaced)
         {
-            gridMap.RemoveEntity(this);
+            GridMap previousMap = gridMap;
+            previousMap.RemoveEntity(this);
+            GridUnbound?.Invoke(previousMap);
         }
 
         StopMovement();
@@ -175,6 +186,7 @@ public class PlayerGridController : GridEntity
         inputArmed = true;
         SetVisualsVisible(true);
         moveAction?.Enable();
+        GridBound?.Invoke(gridMap);
     }
 
     private void OnMovePerformed(InputAction.CallbackContext context)
