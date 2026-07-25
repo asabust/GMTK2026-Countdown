@@ -27,6 +27,29 @@ public readonly struct BattleItemUseResult
     public bool Succeeded => Status == BattleItemUseStatus.Success;
 }
 
+public enum BattleSkillUseStatus
+{
+    Success,
+    WrongPhase,
+    NotLearned,
+    InvalidSkill,
+    OnCooldown,
+    NumberInsufficient
+}
+
+public readonly struct BattleSkillUseResult
+{
+    public BattleSkillUseResult(BattleSkillUseStatus status, string message)
+    {
+        Status = status;
+        Message = message;
+    }
+
+    public BattleSkillUseStatus Status { get; }
+    public string Message { get; }
+    public bool Succeeded => Status == BattleSkillUseStatus.Success;
+}
+
 public sealed class BattleActionRequest
 {
     public BattleActionRequest(
@@ -40,6 +63,9 @@ public sealed class BattleActionRequest
         PlayerInventory inventory,
         Func<CollectibleDefinition, BattleItemUseResult> useItem,
         Func<CollectibleDefinition, BattleItemUseResult> validateItem,
+        PlayerSkillController skills,
+        Func<SkillDefinition, BattleSkillUseResult> useSkill,
+        Func<SkillDefinition, BattleSkillUseResult> validateSkill,
         bool isAutoPassing = false
     )
     {
@@ -53,6 +79,9 @@ public sealed class BattleActionRequest
         Inventory = inventory;
         UseItem = useItem;
         ValidateItem = validateItem;
+        Skills = skills;
+        UseSkill = useSkill;
+        ValidateSkill = validateSkill;
         IsAutoPassing = isAutoPassing;
     }
 
@@ -66,6 +95,9 @@ public sealed class BattleActionRequest
     public PlayerInventory Inventory { get; }
     public Func<CollectibleDefinition, BattleItemUseResult> UseItem { get; }
     public Func<CollectibleDefinition, BattleItemUseResult> ValidateItem { get; }
+    public PlayerSkillController Skills { get; }
+    public Func<SkillDefinition, BattleSkillUseResult> UseSkill { get; }
+    public Func<SkillDefinition, BattleSkillUseResult> ValidateSkill { get; }
     public bool IsAutoPassing { get; }
 }
 
@@ -81,6 +113,10 @@ public class BattleActionPanel : UIPanel
     [SerializeField] private TMP_Text attackButtonLabel;
     [SerializeField] private Button itemButton;
     [SerializeField] private TMP_Text itemButtonLabel;
+    private readonly Button[] skillButtons = new Button[3];
+    private readonly Image[] skillButtonIcons = new Image[3];
+    private readonly TMP_Text[] skillButtonLabels = new TMP_Text[3];
+    private readonly TMP_Text[] skillButtonCounts = new TMP_Text[3];
     [SerializeField, HideInInspector] private Button struggleButton;
 
     [Header("Item menu")]
@@ -94,11 +130,54 @@ public class BattleActionPanel : UIPanel
     [SerializeField] private Button backButton;
 
     private readonly List<CollectibleStack> displayedItems = new();
+    private readonly List<LearnedSkillState> displayedSkills = new();
     private BattleActionRequest request;
     private int selectedItemIndex = -1;
 
     public override void OnInit()
     {
+        for (int i = 0; i < skillButtons.Length; i++)
+        {
+            Transform skillTransform = primaryMenu != null
+                ? primaryMenu.transform.Find($"Skill{i + 1}Button")
+                : null;
+            if (skillTransform == null && itemButton != null)
+            {
+                Button fallback = Instantiate(
+                    itemButton,
+                    itemButton.transform.parent
+                );
+                fallback.name = $"Skill{i + 1}Button";
+                fallback.transform.SetSiblingIndex(
+                    itemButton.transform.GetSiblingIndex()
+                );
+                skillTransform = fallback.transform;
+            }
+
+            skillButtons[i] = skillTransform != null
+                ? skillTransform.GetComponent<Button>()
+                : null;
+            skillButtonIcons[i] = FindChildComponent<Image>(
+                skillTransform,
+                "Icon"
+            );
+            skillButtonLabels[i] = FindChildComponent<TMP_Text>(
+                skillTransform,
+                "Label"
+            );
+            skillButtonCounts[i] = FindChildComponent<TMP_Text>(
+                skillTransform,
+                "Count"
+            );
+
+            int capturedIndex = i;
+            skillButtons[i]?.onClick.RemoveAllListeners();
+            skillButtons[i]?.onClick.AddListener(
+                () => HandlePrimarySkillClicked(capturedIndex)
+            );
+            skillButtons[i]?.gameObject.SetActive(false);
+        }
+
         attackButton?.onClick.AddListener(HandlePrimaryAction);
         itemButton?.onClick.AddListener(ShowItemMenu);
         backButton?.onClick.AddListener(ShowPrimaryMenu);
@@ -123,6 +202,10 @@ public class BattleActionPanel : UIPanel
         {
             request.Inventory.Changed += HandleInventoryChanged;
         }
+        if (request?.Skills != null)
+        {
+            request.Skills.Changed += HandleSkillsChanged;
+        }
 
         if (feedbackText != null)
         {
@@ -137,6 +220,7 @@ public class BattleActionPanel : UIPanel
         UnbindInventory();
         request = null;
         displayedItems.Clear();
+        displayedSkills.Clear();
         selectedItemIndex = -1;
     }
 
@@ -226,7 +310,6 @@ public class BattleActionPanel : UIPanel
         {
             itemButtonLabel.text = "道具";
         }
-
         if (attackButton != null)
         {
             attackButton.interactable = canStruggle ||
@@ -239,6 +322,7 @@ public class BattleActionPanel : UIPanel
                 request.Inventory != null &&
                 request.Inventory.GetOrderedItemStacks().Count > 0;
         }
+        RefreshPrimarySkillButtons();
     }
 
     private void RefreshItemMenu()
@@ -305,6 +389,58 @@ public class BattleActionPanel : UIPanel
         }
     }
 
+    private void RefreshPrimarySkillButtons()
+    {
+        displayedSkills.Clear();
+        if (request?.Skills != null)
+        {
+            displayedSkills.AddRange(request.Skills.GetLearnedSkills());
+        }
+
+        for (int i = 0; i < skillButtons.Length; i++)
+        {
+            bool occupied = i < displayedSkills.Count;
+            SkillDefinition definition = occupied
+                ? displayedSkills[i]?.Definition
+                : null;
+            Button button = skillButtons[i];
+            button?.gameObject.SetActive(occupied);
+            if (!occupied)
+            {
+                continue;
+            }
+
+            if (skillButtonIcons[i] != null)
+            {
+                skillButtonIcons[i].sprite = definition?.Icon;
+                skillButtonIcons[i].enabled = definition?.Icon != null;
+            }
+            if (skillButtonLabels[i] != null)
+            {
+                skillButtonLabels[i].text = definition?.DisplayName ?? "技能";
+            }
+            if (skillButtonCounts[i] != null)
+            {
+                int cooldown = definition != null
+                    ? request.Skills.GetCooldown(definition)
+                    : 0;
+                skillButtonCounts[i].text =
+                    cooldown > 0 ? $"CD {cooldown}" : string.Empty;
+            }
+            if (button != null)
+            {
+                BattleSkillUseResult validation = definition != null
+                    ? request.ValidateSkill(definition)
+                    : new BattleSkillUseResult(
+                        BattleSkillUseStatus.InvalidSkill,
+                        string.Empty
+                    );
+                button.interactable =
+                    definition != null && validation.Succeeded;
+            }
+        }
+    }
+
     private void SelectItem(int index)
     {
         if (index < 0 || index >= displayedItems.Count)
@@ -343,11 +479,32 @@ public class BattleActionPanel : UIPanel
 
         if (result.Succeeded)
         {
-            ShowPrimaryMenu();
+            if (request != null)
+            {
+                ShowPrimaryMenu();
+            }
+            return;
         }
-        else
+
+        RefreshItemMenu();
+    }
+
+    private void HandlePrimarySkillClicked(int index)
+    {
+        if (request == null || index < 0 || index >= displayedSkills.Count)
         {
-            RefreshItemMenu();
+            return;
+        }
+
+        SkillDefinition definition = displayedSkills[index].Definition;
+        BattleSkillUseResult result = request.UseSkill(definition);
+        if (feedbackText != null)
+        {
+            feedbackText.text = result.Message;
+        }
+        if (!result.Succeeded && request != null)
+        {
+            RefreshPrimaryMenu();
         }
     }
 
@@ -363,11 +520,20 @@ public class BattleActionPanel : UIPanel
         }
     }
 
+    private void HandleSkillsChanged()
+    {
+        RefreshPrimaryMenu();
+    }
+
     private void UnbindInventory()
     {
         if (request?.Inventory != null)
         {
             request.Inventory.Changed -= HandleInventoryChanged;
+        }
+        if (request?.Skills != null)
+        {
+            request.Skills.Changed -= HandleSkillsChanged;
         }
     }
 
@@ -377,5 +543,26 @@ public class BattleActionPanel : UIPanel
         itemButton?.onClick.RemoveListener(ShowItemMenu);
         backButton?.onClick.RemoveListener(ShowPrimaryMenu);
         UnbindInventory();
+    }
+
+    private static T FindChildComponent<T>(
+        Transform parent,
+        string childName
+    ) where T : Component
+    {
+        if (parent == null)
+        {
+            return null;
+        }
+
+        foreach (T component in parent.GetComponentsInChildren<T>(true))
+        {
+            if (component.gameObject.name == childName)
+            {
+                return component;
+            }
+        }
+
+        return null;
     }
 }

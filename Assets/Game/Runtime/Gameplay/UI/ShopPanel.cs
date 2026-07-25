@@ -34,6 +34,50 @@ public sealed class ShopRequest
     public Action Leave { get; }
 }
 
+public enum ExchangeResultStatus
+{
+    Success,
+    InvalidSelection,
+    NoAlternativeAvailable
+}
+
+public readonly struct ExchangeResult
+{
+    public ExchangeResult(
+        ExchangeResultStatus status,
+        CollectibleDefinition given,
+        CollectibleDefinition received
+    )
+    {
+        Status = status;
+        Given = given;
+        Received = received;
+    }
+
+    public ExchangeResultStatus Status { get; }
+    public CollectibleDefinition Given { get; }
+    public CollectibleDefinition Received { get; }
+    public bool Succeeded => Status == ExchangeResultStatus.Success;
+}
+
+public sealed class ExchangeRequest
+{
+    public ExchangeRequest(
+        PlayerInventory inventory,
+        Func<CollectibleDefinition, ExchangeResult> exchange,
+        Action complete
+    )
+    {
+        Inventory = inventory;
+        Exchange = exchange;
+        Complete = complete;
+    }
+
+    public PlayerInventory Inventory { get; }
+    public Func<CollectibleDefinition, ExchangeResult> Exchange { get; }
+    public Action Complete { get; }
+}
+
 public sealed class ShopPanel : UIPanel
 {
     [SerializeField] private Image merchantPortrait;
@@ -46,8 +90,12 @@ public sealed class ShopPanel : UIPanel
     [SerializeField] private Button leaveButton;
 
     private ShopRequest request;
+    private ExchangeRequest exchangeRequest;
+    private readonly System.Collections.Generic.List<CollectibleStack>
+        exchangeItems = new();
     private int selectedIndex = -1;
     private bool submitted;
+    private bool exchangeResolved;
 
     public override void OnInit()
     {
@@ -65,14 +113,23 @@ public sealed class ShopPanel : UIPanel
     public override void OnOpen(object data = null)
     {
         request = data as ShopRequest;
+        exchangeRequest = data as ExchangeRequest;
         submitted = false;
+        exchangeResolved = false;
         selectedIndex = -1;
         if (feedbackText != null) feedbackText.text = string.Empty;
+        if (leaveButton != null) leaveButton.gameObject.SetActive(true);
 
-        if (request == null)
+        if (request == null && exchangeRequest == null)
         {
             Debug.LogError("ShopPanel received invalid data.", this);
             if (buyButton != null) buyButton.interactable = false;
+            return;
+        }
+
+        if (exchangeRequest != null)
+        {
+            OpenExchange();
             return;
         }
 
@@ -90,15 +147,28 @@ public sealed class ShopPanel : UIPanel
     public override void OnClose()
     {
         request = null;
+        exchangeRequest = null;
+        exchangeItems.Clear();
         selectedIndex = -1;
         submitted = false;
+        exchangeResolved = false;
     }
 
     private void Select(int index)
     {
-        if (submitted || request?.Offers == null ||
-            index < 0 || index >= request.Offers.Length)
+        if (submitted)
             return;
+        if (exchangeRequest != null)
+        {
+            if (exchangeResolved || index < 0 || index >= exchangeItems.Count)
+                return;
+            selectedIndex = index;
+            if (feedbackText != null) feedbackText.text = string.Empty;
+            RefreshExchangeSelection();
+            return;
+        }
+        if (request?.Offers == null ||
+            index < 0 || index >= request.Offers.Length) return;
         selectedIndex = index;
         if (feedbackText != null) feedbackText.text = string.Empty;
         RefreshSelection();
@@ -106,7 +176,13 @@ public sealed class ShopPanel : UIPanel
 
     private void Buy()
     {
-        if (submitted || request == null || selectedIndex < 0) return;
+        if (submitted) return;
+        if (exchangeRequest != null)
+        {
+            Exchange();
+            return;
+        }
+        if (request == null || selectedIndex < 0) return;
         ShopPurchaseResult result =
             request.Purchase?.Invoke(selectedIndex) ??
             ShopPurchaseResult.InvalidOffer;
@@ -142,10 +218,11 @@ public sealed class ShopPanel : UIPanel
 
     private void Leave()
     {
-        if (submitted || request == null) return;
+        if (submitted || request == null && exchangeRequest == null) return;
         submitted = true;
         SetButtons(false);
-        request.Leave?.Invoke();
+        if (exchangeRequest != null) exchangeRequest.Complete?.Invoke();
+        else request.Leave?.Invoke();
     }
 
     private void RefreshOffers()
@@ -207,6 +284,135 @@ public sealed class ShopPanel : UIPanel
     {
         if (numberText != null)
             numberText.text = request?.Number?.CurrentValue.ToString() ?? "—";
+    }
+
+    private void OpenExchange()
+    {
+        exchangeItems.Clear();
+        if (exchangeRequest.Inventory != null)
+        {
+            exchangeItems.AddRange(
+                exchangeRequest.Inventory.GetOrderedItemStacks()
+            );
+        }
+
+        if (merchantPortrait != null)
+        {
+            merchantPortrait.gameObject.SetActive(true);
+        }
+        if (numberText != null)
+        {
+            numberText.text = "交换";
+        }
+        if (leaveButton != null)
+        {
+            leaveButton.gameObject.SetActive(true);
+            leaveButton.interactable = true;
+        }
+
+        RefreshExchangeItems();
+        if (exchangeItems.Count == 0)
+        {
+            if (dialogueText != null)
+                dialogueText.text = "很遗憾，你没有任何道具";
+            if (buyButton != null) buyButton.interactable = false;
+            if (buyButtonText != null) buyButtonText.text = "交换一个道具";
+            return;
+        }
+
+        Select(0);
+    }
+
+    private void RefreshExchangeItems()
+    {
+        for (int i = 0; i < productViews?.Length; i++)
+        {
+            ShopProductView view = productViews[i];
+            CollectibleStack stack = i < exchangeItems.Count
+                ? exchangeItems[i]
+                : null;
+            CollectibleDefinition item = stack?.Definition;
+            bool valid = view != null && item != null;
+            view?.selectButton?.gameObject.SetActive(valid);
+            if (!valid) continue;
+
+            view.icon.sprite = item.Icon;
+            view.icon.enabled = item.Icon != null;
+            view.nameText.text = item.DisplayName;
+            view.priceText.text = $"x{stack.Count}";
+            view.stateText.text = string.Empty;
+            view.selectButton.interactable = !submitted && !exchangeResolved;
+        }
+    }
+
+    private void RefreshExchangeSelection()
+    {
+        CollectibleDefinition item =
+            selectedIndex >= 0 && selectedIndex < exchangeItems.Count
+                ? exchangeItems[selectedIndex]?.Definition
+                : null;
+        if (item == null)
+        {
+            if (buyButton != null) buyButton.interactable = false;
+            return;
+        }
+
+        if (dialogueText != null)
+        {
+            dialogueText.text =
+                $"【道具】{item.DisplayName}\n{item.Description}\n\n" +
+                "选择一个和我交换吧~";
+        }
+        if (buyButton != null) buyButton.interactable = !exchangeResolved;
+        if (buyButtonText != null) buyButtonText.text = "交换一个道具";
+    }
+
+    private void Exchange()
+    {
+        if (exchangeResolved)
+        {
+            Leave();
+            return;
+        }
+        if (selectedIndex < 0 || selectedIndex >= exchangeItems.Count)
+        {
+            return;
+        }
+
+        ExchangeResult result = exchangeRequest.Exchange?.Invoke(
+            exchangeItems[selectedIndex].Definition
+        ) ?? new ExchangeResult(
+            ExchangeResultStatus.InvalidSelection,
+            null,
+            null
+        );
+        if (!result.Succeeded)
+        {
+            if (feedbackText != null)
+            {
+                feedbackText.text =
+                    result.Status == ExchangeResultStatus.NoAlternativeAvailable
+                        ? "暂时没有可以交换的其他道具"
+                        : "交换失败，请重新选择";
+            }
+            return;
+        }
+
+        exchangeResolved = true;
+        if (feedbackText != null)
+        {
+            feedbackText.text =
+                $"用 {result.Given.DisplayName} 换到了 " +
+                $"{result.Received.DisplayName}";
+        }
+        if (dialogueText != null)
+        {
+            dialogueText.text = result.Received.Description;
+        }
+        RefreshExchangeItems();
+        if (buyButton != null) buyButton.interactable = true;
+        if (buyButtonText != null) buyButtonText.text = "完成";
+        if (leaveButton != null) leaveButton.gameObject.SetActive(false);
     }
 
     private void SetButtons(bool value)

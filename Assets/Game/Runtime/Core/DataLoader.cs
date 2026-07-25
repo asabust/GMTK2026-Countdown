@@ -33,6 +33,9 @@ namespace Game.Runtime.Core
             }
 
             gameData = JsonConvert.DeserializeObject<ExcelTableContext>(jsonText.text);
+            Game.Runtime.Data.GameLocalization.UseTable(
+                gameData?.localizationData
+            );
         }
     }
 }

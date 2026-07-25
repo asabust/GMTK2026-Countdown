@@ -128,6 +128,7 @@ public class FogOfWarSystem : MonoBehaviour
     {
         if (target != null)
         {
+            RestoreTargetFootprintFog(target);
             visibilityTargets.Remove(target);
         }
     }
@@ -254,6 +255,11 @@ public class FogOfWarSystem : MonoBehaviour
     private void RefreshVisibilityTargets()
     {
         visibilityTargets.RemoveWhere(target => target == null);
+        foreach (GridCell cell in gridMap.GetAllCells())
+        {
+            UpdateCellVisual(cell);
+        }
+
         foreach (FogVisibilityTarget target in visibilityTargets)
         {
             RefreshVisibilityTarget(target);
@@ -293,6 +299,41 @@ public class FogOfWarSystem : MonoBehaviour
         }
 
         target.ApplyVisibility(resolvedVisibility);
+        if (resolvedVisibility == CellVisibility.Visible &&
+            (entity.Size.x > 1 || entity.Size.y > 1))
+        {
+            SuppressFogForTargetFootprint(entity);
+        }
+    }
+
+    private void SuppressFogForTargetFootprint(GridEntity entity)
+    {
+        if (fogTilemap == null || entity == null)
+        {
+            return;
+        }
+
+        foreach (Vector2Int position in entity.GetOccupiedCells())
+        {
+            fogTilemap.SetTile(
+                new Vector3Int(position.x, position.y, 0),
+                null
+            );
+        }
+    }
+
+    private void RestoreTargetFootprintFog(FogVisibilityTarget target)
+    {
+        GridEntity entity = target != null ? target.Entity : null;
+        if (gridMap == null || entity == null)
+        {
+            return;
+        }
+
+        foreach (Vector2Int position in entity.GetOccupiedCells())
+        {
+            UpdateCellVisual(gridMap.GetCell(position));
+        }
     }
 
     private void UpdateCellVisual(GridCell cell)

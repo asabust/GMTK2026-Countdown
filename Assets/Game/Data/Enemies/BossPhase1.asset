@@ -1,0 +1,43 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 72ff22544e534d97b3598dc54fd2029d, type: 3}
+  m_Name: BossPhase1
+  m_EditorClassIdentifier:
+  enemyId: BossPhase1
+  displayName: "\u8870\u53F9\u4E4B\u949F\u00B7\u4E00\u9636\u6BB5"
+  minHP: 50
+  maxHP: 50
+  canRollHP: 0
+  fixedHP: 50
+  rewardNumber: 0
+  rewardMode: 0
+  attackDamage: 5
+  specialDamage: 13
+  behaviorType: 4
+  intentSequence:
+  - 1
+  - 4
+  - 4
+  - 2
+  raiderNextAttackBonus: 1
+  raiderSelfDamage: 2
+  raiderStrengthenWeight: 1
+  raiderSelfDamageWeight: 1
+  raiderStunnedWeight: 1
+  hamsterStealAmount: 3
+  healthRewardMultiplier: 0.5
+  horrorExplosionMultiplier: 0.8
+  itemDropTable: []
+  itemDropCount: 0
+  bossPhase: 1
+  bossNextPhase: {fileID: 11400000, guid: 9eff24b07c184131861e4a01263aef61, type: 2}
+  bossNoItemDamage: 5

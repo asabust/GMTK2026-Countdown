@@ -15,7 +15,9 @@ public enum EnemyIntentType
     Wait,
     Attack,
     Special,
-    Steal
+    Steal,
+    Charge,
+    StealItem
 }
 
 public enum EnemyRewardMode
@@ -64,6 +66,10 @@ public class EnemyDefinition : ScriptableObject
     [SerializeField, Min(0f)] private float horrorExplosionMultiplier = 0.8f;
     [SerializeField] private CollectibleDefinition[] itemDropTable;
     [SerializeField, Min(0)] private int itemDropCount = 1;
+    [Header("Boss")]
+    [SerializeField, Range(0, 2)] private int bossPhase;
+    [SerializeField] private EnemyDefinition bossNextPhase;
+    [SerializeField, Min(0)] private int bossNoItemDamage = 5;
 
     public string EnemyId => enemyId;
     public string DisplayName => displayName;
@@ -83,19 +89,27 @@ public class EnemyDefinition : ScriptableObject
     public float HealthRewardMultiplier => healthRewardMultiplier;
     public float HorrorExplosionMultiplier => horrorExplosionMultiplier;
     public int ItemDropCount => itemDropCount;
+    public int BossPhase => bossPhase;
+    public EnemyDefinition BossNextPhase => bossNextPhase;
+    public int BossNoItemDamage => bossNoItemDamage;
 
     public int StableHP => canRollHP
         ? Mathf.Min(maxHP, Mathf.FloorToInt((minHP + maxHP) * 0.5f) + 1)
         : fixedHP;
 
-    public string RewardPreview => rewardMode switch
-    {
-        EnemyRewardMode.TurnScaled => "生命×80%～45%",
-        EnemyRewardMode.HealthScaled =>
-            $"生命×{Mathf.RoundToInt(healthRewardMultiplier * 100f)}%" +
-            (itemDropCount > 0 ? $" + 道具×{itemDropCount}" : string.Empty),
-        _ => rewardNumber.ToString()
-    };
+    public string RewardPreview =>
+        behaviorType == EnemyBehaviorType.Boss
+            ? "无掉落"
+            : rewardMode switch
+            {
+                EnemyRewardMode.TurnScaled => "生命×80%～45%",
+                EnemyRewardMode.HealthScaled =>
+                    $"生命×{Mathf.RoundToInt(healthRewardMultiplier * 100f)}%" +
+                    (itemDropCount > 0
+                        ? $" + 道具×{itemDropCount}"
+                        : string.Empty),
+                _ => rewardNumber.ToString()
+            };
 
     public int CalculateNumberReward(
         int resolvedMaxHP,
@@ -198,5 +212,7 @@ public class EnemyDefinition : ScriptableObject
         healthRewardMultiplier = Mathf.Max(0f, healthRewardMultiplier);
         horrorExplosionMultiplier = Mathf.Max(0f, horrorExplosionMultiplier);
         itemDropCount = Mathf.Max(0, itemDropCount);
+        bossPhase = Mathf.Clamp(bossPhase, 0, 2);
+        bossNoItemDamage = Mathf.Max(0, bossNoItemDamage);
     }
 }

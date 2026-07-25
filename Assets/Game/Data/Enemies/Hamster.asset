@@ -20,11 +20,10 @@ MonoBehaviour:
   fixedHP: 10
   rewardNumber: 0
   rewardMode: 1
-  attackDamage: 0
+  attackDamage: 2
   specialDamage: 0
   behaviorType: 3
   intentSequence:
-  - 3
   - 3
   - 3
   - 2

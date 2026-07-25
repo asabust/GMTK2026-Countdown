@@ -9,23 +9,27 @@ public sealed class GameOverRequest
         string reason,
         int finalNumber,
         Action retry,
-        Action returnToTitle
+        Action returnToTitle,
+        string title = "跌破归零"
     )
     {
         Reason = reason;
         FinalNumber = finalNumber;
         Retry = retry;
         ReturnToTitle = returnToTitle;
+        Title = title;
     }
 
     public string Reason { get; }
     public int FinalNumber { get; }
     public Action Retry { get; }
     public Action ReturnToTitle { get; }
+    public string Title { get; }
 }
 
 public class GameOverPanel : UIPanel
 {
+    [SerializeField] private TMP_Text titleText;
     [SerializeField] private TMP_Text reasonText;
     [SerializeField] private TMP_Text finalNumberText;
     [SerializeField] private Button retryButton;
@@ -52,6 +56,7 @@ public class GameOverPanel : UIPanel
             return;
         }
 
+        titleText.text = request.Title;
         reasonText.text = request.Reason;
         finalNumberText.text = $"最终数字：{request.FinalNumber}";
     }

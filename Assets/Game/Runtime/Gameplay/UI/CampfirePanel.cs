@@ -27,6 +27,44 @@ public sealed class CampfireRequest
     public Action Leave { get; }
 }
 
+public sealed class TreasureRequest
+{
+    public TreasureRequest(
+        SkillDefinition skill,
+        PlayerSkillController skills,
+        Func<bool> learn,
+        Action leave
+    )
+    {
+        Skill = skill;
+        Skills = skills;
+        Learn = learn;
+        Leave = leave;
+    }
+
+    public TreasureRequest(
+        CollectibleDefinition collectible,
+        PlayerInventory inventory,
+        Func<bool> claimCollectible,
+        Action leave
+    )
+    {
+        Collectible = collectible;
+        Inventory = inventory;
+        ClaimCollectible = claimCollectible;
+        Leave = leave;
+    }
+
+    public SkillDefinition Skill { get; }
+    public PlayerSkillController Skills { get; }
+    public Func<bool> Learn { get; }
+    public CollectibleDefinition Collectible { get; }
+    public PlayerInventory Inventory { get; }
+    public Func<bool> ClaimCollectible { get; }
+    public bool IsCollectibleReward => Collectible != null;
+    public Action Leave { get; }
+}
+
 public sealed class CampfirePanel : UIPanel
 {
     [SerializeField] private TMP_Text titleText;
@@ -37,6 +75,7 @@ public sealed class CampfirePanel : UIPanel
     [SerializeField] private Button leaveButton;
 
     private CampfireRequest request;
+    private TreasureRequest treasureRequest;
     private bool awaitingFullNumberConfirmation;
     private bool submitted;
 
@@ -49,14 +88,21 @@ public sealed class CampfirePanel : UIPanel
     public override void OnOpen(object data = null)
     {
         request = data as CampfireRequest;
+        treasureRequest = data as TreasureRequest;
         awaitingFullNumberConfirmation = false;
         submitted = false;
         SetButtonsInteractable(true);
 
-        if (request == null)
+        if (request == null && treasureRequest == null)
         {
             Debug.LogError("CampfirePanel received invalid data.", this);
             SetButtonsInteractable(false);
+            return;
+        }
+
+        if (treasureRequest != null)
+        {
+            OpenTreasure();
             return;
         }
 
@@ -92,16 +138,39 @@ public sealed class CampfirePanel : UIPanel
     public override void OnClose()
     {
         request = null;
+        treasureRequest = null;
         awaitingFullNumberConfirmation = false;
         submitted = false;
     }
 
     private void HandleRest()
     {
-        if (request == null || submitted)
+        if (submitted)
         {
             return;
         }
+
+        if (treasureRequest != null)
+        {
+            string rewardName = treasureRequest.IsCollectibleReward
+                ? treasureRequest.Collectible.DisplayName
+                : treasureRequest.Skill != null
+                    ? treasureRequest.Skill.DisplayName
+                    : "未知奖励";
+            submitted = true;
+            SetButtonsInteractable(false);
+            bool received = treasureRequest.IsCollectibleReward
+                ? treasureRequest.ClaimCollectible?.Invoke() == true
+                : treasureRequest.Learn?.Invoke() == true;
+            if (feedbackText != null)
+            {
+                feedbackText.text = received
+                    ? $"获得：{rewardName}"
+                    : "未能获得奖励";
+            }
+            return;
+        }
+        if (request == null) return;
 
         NumberResource resource = request.NumberResource;
         bool isAtMaximum =
@@ -130,14 +199,108 @@ public sealed class CampfirePanel : UIPanel
 
     private void HandleLeave()
     {
-        if (request == null || submitted)
+        if (request == null && treasureRequest == null || submitted)
         {
             return;
         }
 
         submitted = true;
         SetButtonsInteractable(false);
-        request.Leave?.Invoke();
+        if (treasureRequest != null) treasureRequest.Leave?.Invoke();
+        else request.Leave?.Invoke();
+    }
+
+    private void OpenTreasure()
+    {
+        if (treasureRequest.IsCollectibleReward)
+        {
+            OpenCollectibleTreasure();
+            return;
+        }
+
+        SkillDefinition skill = treasureRequest.Skill;
+        bool owned =
+            skill != null &&
+            treasureRequest.Skills?.Owns(skill) == true;
+        if (titleText != null)
+        {
+            titleText.text = skill != null
+                ? $"宝藏：{skill.DisplayName}"
+                : "宝藏";
+        }
+        if (descriptionText != null)
+        {
+            string damage = skill != null && skill.BaseDamage > 0
+                ? $"  伤害 {skill.BaseDamage}"
+                : string.Empty;
+            descriptionText.text = skill == null
+                ? "宝藏中没有配置技能。"
+                : $"消耗 {skill.NumberCost}{damage}  CD {skill.CooldownTurns}\n" +
+                  skill.Description;
+        }
+        if (feedbackText != null)
+        {
+            feedbackText.text = owned ? "已经掌握该技能" : string.Empty;
+        }
+        if (restButtonText != null)
+        {
+            restButtonText.text = owned ? "已掌握" : "学习技能";
+        }
+        if (restButton != null)
+        {
+            restButton.interactable = skill != null && !owned;
+        }
+        if (leaveButton != null)
+        {
+            leaveButton.interactable = true;
+        }
+    }
+
+    private void OpenCollectibleTreasure()
+    {
+        CollectibleDefinition collectible = treasureRequest.Collectible;
+        InventoryAddResult addResult =
+            collectible != null && treasureRequest.Inventory != null
+                ? treasureRequest.Inventory.CanAdd(collectible)
+                : InventoryAddResult.InvalidDefinition;
+        bool canClaim = addResult == InventoryAddResult.Success;
+        string kind = collectible?.Kind == CollectibleKind.Relic
+            ? "藏品"
+            : "道具";
+
+        if (titleText != null)
+        {
+            titleText.text = collectible != null
+                ? $"宝藏：{collectible.DisplayName}"
+                : "宝藏";
+        }
+        if (descriptionText != null)
+        {
+            descriptionText.text = collectible == null
+                ? "宝藏中没有配置道具或藏品。"
+                : $"【{kind}】{collectible.DisplayName}\n" +
+                  collectible.Description;
+        }
+        if (feedbackText != null)
+        {
+            feedbackText.text = canClaim
+                ? string.Empty
+                : addResult == InventoryAddResult.MaximumStacksReached
+                    ? $"该{kind}已达到持有上限"
+                    : $"现在无法获得该{kind}";
+        }
+        if (restButtonText != null)
+        {
+            restButtonText.text = canClaim ? "领取" : "无法领取";
+        }
+        if (restButton != null)
+        {
+            restButton.interactable = canClaim;
+        }
+        if (leaveButton != null)
+        {
+            leaveButton.interactable = true;
+        }
     }
 
     private void SetButtonsInteractable(bool interactable)

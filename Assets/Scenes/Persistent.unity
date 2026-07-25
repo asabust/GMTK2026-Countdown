@@ -992,6 +992,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 32bd48380c2fb48c9829b1b56ec8f337, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  limitItemSlots: 0
   itemSlotCapacity: 4
   stacks: []
 --- !u!114 &1104470238
@@ -1299,12 +1300,12 @@ MonoBehaviour:
   m_ScreenX: 0.5
   m_ScreenY: 0.5
   m_CameraDistance: 10
-  m_DeadZoneWidth: 0.35
-  m_DeadZoneHeight: 0.29
+  m_DeadZoneWidth: 0
+  m_DeadZoneHeight: 0
   m_DeadZoneDepth: 0
   m_UnlimitedSoftZone: 0
-  m_SoftZoneWidth: 0.69
-  m_SoftZoneHeight: 0.69
+  m_SoftZoneWidth: 0.2
+  m_SoftZoneHeight: 0.2
   m_BiasX: 0
   m_BiasY: 0
   m_CenterOnActivate: 1

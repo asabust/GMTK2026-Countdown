@@ -14,7 +14,8 @@ public enum NumberChangeReason
     Reward,
     Stolen,
     StolenReturn,
-    Other
+    Other,
+    Skill
 }
 
 public readonly struct NumberChange

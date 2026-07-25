@@ -36,6 +36,15 @@ namespace Game.Runtime.Data
 
             return $"[MISSING:{lang}:{key}]"; // 方便发现漏填
         }
+
+        public bool TryGet(Language lang, string key, out string text)
+        {
+            text = null;
+            return data != null &&
+                   data.TryGetValue(lang, out var dict) &&
+                   dict.TryGetValue(key, out text) &&
+                   !string.IsNullOrWhiteSpace(text);
+        }
     }
 
     public enum Language

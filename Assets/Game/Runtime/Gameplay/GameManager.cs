@@ -57,6 +57,7 @@ public class GameManager : Singleton<GameManager>
         NumberResource.Instance?.ResetForNewRun();
         FindObjectOfType<PlayerInventory>()?.ResetForNewRun();
         FindObjectOfType<PlayerRunStats>()?.ResetForNewRun();
+        FindObjectOfType<PlayerSkillController>()?.ResetForNewRun();
         SetGamePhase(GamePhase.Gameplay);
         TransitionManager.Instance.TransitionTo(firstGameScene);
     }
@@ -81,6 +82,22 @@ public class GameManager : Singleton<GameManager>
                     : -1,
                 StartNewGame,
                 ReturnToTitle
+            )
+        );
+    }
+
+    public void Victory(string reason)
+    {
+        SetGamePhase(GamePhase.Victory);
+        UIManager.Instance?.Open<GameOverPanel>(
+            new GameOverRequest(
+                reason,
+                NumberResource.Instance != null
+                    ? NumberResource.Instance.CurrentValue
+                    : 0,
+                StartNewGame,
+                ReturnToTitle,
+                "最终胜利"
             )
         );
     }

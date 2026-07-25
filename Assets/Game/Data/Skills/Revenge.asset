@@ -1,0 +1,28 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4874fa5e3ce14723a4f4bf6e39d97e63, type: 3}
+  m_Name: Revenge
+  m_EditorClassIdentifier:
+  skillId: revenge
+  displayName: "\u590D\u4EC7"
+  description: "\u8FDE\u7EED\u653B\u51FB 2\uFF5E3 \u6B21\uFF0C\u6BCF\u6B21\u9020\u6210 4 \u70B9\u4F24\u5BB3\uFF1B50% \u6982\u7387\u653B\u51FB 3 \u6B21\u3002"
+  icon: {fileID: 21300000, guid: 0c021fce41a7a4692a206eea2c6c2fbb, type: 3}
+  skillType: 3
+  numberCost: 3
+  baseDamage: 4
+  cooldownTurns: 3
+  bloodlustBasicAttacks: 2
+  bloodlustMultiplier: 2
+  killRestore: 0
+  minimumHits: 2
+  maximumHits: 3
+  extraHitChance: 0.5

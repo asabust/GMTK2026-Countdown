@@ -126,6 +126,54 @@ public sealed class PlayerInventory : MonoBehaviour
         return true;
     }
 
+    public bool TryRemoveRandomItem(out CollectibleDefinition removed)
+    {
+        removed = null;
+        int totalItemCount = 0;
+        foreach (CollectibleStack stack in stacks)
+        {
+            if (stack?.Definition != null &&
+                stack.Definition.Kind == CollectibleKind.Item)
+            {
+                totalItemCount += stack.Count;
+            }
+        }
+
+        if (totalItemCount <= 0)
+        {
+            return false;
+        }
+
+        int roll = GameRandom.RangeInclusive(1, totalItemCount);
+        for (int i = 0; i < stacks.Count; i++)
+        {
+            CollectibleStack stack = stacks[i];
+            if (stack?.Definition == null ||
+                stack.Definition.Kind != CollectibleKind.Item)
+            {
+                continue;
+            }
+
+            roll -= stack.Count;
+            if (roll > 0)
+            {
+                continue;
+            }
+
+            removed = stack.Definition;
+            if (stack.RemoveOne())
+            {
+                stacks.RemoveAt(i);
+                UsedItemSlots = Mathf.Max(0, UsedItemSlots - 1);
+            }
+
+            Changed?.Invoke();
+            return true;
+        }
+
+        return false;
+    }
+
     public List<CollectibleStack> GetOrderedItemStacks()
     {
         List<CollectibleStack> items = stacks.FindAll(stack =>

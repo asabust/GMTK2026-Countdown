@@ -11,6 +11,8 @@ public sealed class PlayerRunStats : MonoBehaviour
     public int TimedAttackBonus { get; private set; }
     public bool NegateNextAttack { get; private set; }
     public int NextEnemyPhaseShield { get; private set; }
+    public int EmpoweredBasicAttacksRemaining { get; private set; }
+    public float BasicAttackMultiplier { get; private set; } = 1f;
 
     public event Action Changed;
 
@@ -34,6 +36,42 @@ public sealed class PlayerRunStats : MonoBehaviour
 
         timedAttackBonuses.Add(new TimedBonusEntry(amount, playerActions));
         RecalculateTimedAttackBonus();
+    }
+
+    public void ActivateBloodlust(int basicAttacks, float multiplier)
+    {
+        EmpoweredBasicAttacksRemaining = Mathf.Max(
+            EmpoweredBasicAttacksRemaining,
+            Mathf.Max(1, basicAttacks)
+        );
+        BasicAttackMultiplier = Mathf.Max(
+            BasicAttackMultiplier,
+            Mathf.Max(1f, multiplier)
+        );
+        Changed?.Invoke();
+    }
+
+    public int ApplyBasicAttackMultiplier(int additiveDamage) =>
+        Mathf.RoundToInt(
+            Mathf.Max(0, additiveDamage) *
+            (EmpoweredBasicAttacksRemaining > 0
+                ? BasicAttackMultiplier
+                : 1f)
+        );
+
+    public void ConsumeBasicAttackEmpowerment()
+    {
+        if (EmpoweredBasicAttacksRemaining <= 0)
+        {
+            return;
+        }
+
+        EmpoweredBasicAttacksRemaining--;
+        if (EmpoweredBasicAttacksRemaining == 0)
+        {
+            BasicAttackMultiplier = 1f;
+        }
+        Changed?.Invoke();
     }
 
     public bool TryActivateNegateNextAttack()
@@ -134,7 +172,8 @@ public sealed class PlayerRunStats : MonoBehaviour
         if (OfferingAttackBonus == 0 &&
             timedAttackBonuses.Count == 0 &&
             !NegateNextAttack &&
-            NextEnemyPhaseShield == 0)
+            NextEnemyPhaseShield == 0 &&
+            EmpoweredBasicAttacksRemaining == 0)
         {
             return;
         }
@@ -144,6 +183,8 @@ public sealed class PlayerRunStats : MonoBehaviour
         TimedAttackBonus = 0;
         NegateNextAttack = false;
         NextEnemyPhaseShield = 0;
+        EmpoweredBasicAttacksRemaining = 0;
+        BasicAttackMultiplier = 1f;
         Changed?.Invoke();
     }
 

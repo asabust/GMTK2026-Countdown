@@ -1,4 +1,6 @@
 using System;
+using System.Collections;
+using Game.Runtime.Data;
 using UnityEngine;
 
 public readonly struct EnemyIntentResolution
@@ -8,7 +10,10 @@ public readonly struct EnemyIntentResolution
         int selfDamage,
         string description,
         int numberToSteal = 0,
-        bool escapes = false
+        bool escapes = false,
+        bool attemptsItemSteal = false,
+        int noItemFallbackDamage = 0,
+        bool stunsPlayerOnFallback = false
     )
     {
         DamageToPlayer = damageToPlayer;
@@ -16,6 +21,9 @@ public readonly struct EnemyIntentResolution
         Description = description;
         NumberToSteal = numberToSteal;
         Escapes = escapes;
+        AttemptsItemSteal = attemptsItemSteal;
+        NoItemFallbackDamage = noItemFallbackDamage;
+        StunsPlayerOnFallback = stunsPlayerOnFallback;
     }
 
     public int DamageToPlayer { get; }
@@ -23,6 +31,9 @@ public readonly struct EnemyIntentResolution
     public string Description { get; }
     public int NumberToSteal { get; }
     public bool Escapes { get; }
+    public bool AttemptsItemSteal { get; }
+    public int NoItemFallbackDamage { get; }
+    public bool StunsPlayerOnFallback { get; }
 }
 
 [RequireComponent(typeof(GridObject))]
@@ -35,6 +46,10 @@ public class EnemyActor : MonoBehaviour, IFogVisibilityResponder
     [SerializeField] private string idleAnimationState = "SmallChicken_idle";
     [SerializeField] private string attackAnimationState = "SmallChicken_attack";
     [SerializeField] private string specialAnimationState = "SmallChicken_attack";
+    [Header("Boss Phase 2 Animation States")]
+    [SerializeField] private string bossPhase2IdleAnimationState = "Boss_idle2";
+    [SerializeField] private string bossPhase2AttackAnimationState = "Boss_attack2";
+    [SerializeField] private string bossPhase2SpecialAnimationState = "Boss_attack2";
 
     private EnemyWorldUI worldUI;
     private Animator characterAnimator;
@@ -68,6 +83,16 @@ public class EnemyActor : MonoBehaviour, IFogVisibilityResponder
         }
 
         fogVisibilityTarget.ConfigureAsEnemy(this);
+    }
+
+    private void OnEnable()
+    {
+        GameLocalization.LanguageChanged += HandleLanguageChanged;
+    }
+
+    private void OnDisable()
+    {
+        GameLocalization.LanguageChanged -= HandleLanguageChanged;
     }
 
     private void Start()
@@ -134,6 +159,12 @@ public class EnemyActor : MonoBehaviour, IFogVisibilityResponder
             EnemyIntentType.Special
                 when definition.BehaviorType == EnemyBehaviorType.SmallChicken =>
                 definition.SpecialDamage,
+            EnemyIntentType.Special
+                when definition.BehaviorType == EnemyBehaviorType.Boss =>
+                definition.SpecialDamage,
+            EnemyIntentType.Steal
+                when definition.BehaviorType == EnemyBehaviorType.Hamster =>
+                definition.AttackDamage,
             _ => 0
         };
     }
@@ -147,23 +178,7 @@ public class EnemyActor : MonoBehaviour, IFogVisibilityResponder
 
         EnsureWorldUI();
         int damage = GetCurrentIntentDamage();
-        string description = definition != null &&
-                             definition.BehaviorType ==
-                             EnemyBehaviorType.DrunkenRaider &&
-                             CurrentIntent == EnemyIntentType.Special
-            ? "意图：喝酒（结果未知）"
-            : definition != null &&
-              definition.BehaviorType == EnemyBehaviorType.Hamster
-                ? CurrentIntent == EnemyIntentType.Special
-                    ? $"意图：携带 {StolenNumberEscrow} 点逃跑"
-                    : $"意图：偷取 {definition.HamsterStealAmount}"
-                : CurrentIntent switch
-        {
-            EnemyIntentType.Attack => $"意图：攻击 -{damage}",
-            EnemyIntentType.Special => $"意图：啄地 -{damage}",
-            _ => "意图：等待"
-        };
-        worldUI?.ShowIntent(description);
+        worldUI?.ShowIntent(GetLockedIntentDescription(damage));
     }
 
     public EnemyIntentResolution ResolveLockedIntent()
@@ -181,6 +196,11 @@ public class EnemyActor : MonoBehaviour, IFogVisibilityResponder
         if (definition.BehaviorType == EnemyBehaviorType.Hamster)
         {
             return ResolveHamsterIntent();
+        }
+
+        if (definition.BehaviorType == EnemyBehaviorType.Boss)
+        {
+            return ResolveBossIntent();
         }
 
         int damage = GetCurrentIntentDamage();
@@ -211,6 +231,8 @@ public class EnemyActor : MonoBehaviour, IFogVisibilityResponder
         {
             EnemyIntentType.Attack => attackAnimationState,
             EnemyIntentType.Steal => attackAnimationState,
+            EnemyIntentType.StealItem => specialAnimationState,
+            EnemyIntentType.Charge => specialAnimationState,
             EnemyIntentType.Special => specialAnimationState,
             _ => idleAnimationState
         };
@@ -238,6 +260,8 @@ public class EnemyActor : MonoBehaviour, IFogVisibilityResponder
         {
             EnemyIntentType.Attack => attackAnimationState,
             EnemyIntentType.Steal => attackAnimationState,
+            EnemyIntentType.StealItem => specialAnimationState,
+            EnemyIntentType.Charge => specialAnimationState,
             EnemyIntentType.Special => specialAnimationState,
             _ => idleAnimationState
         };
@@ -333,6 +357,43 @@ public class EnemyActor : MonoBehaviour, IFogVisibilityResponder
         return CurrentHP == 0;
     }
 
+    public IEnumerator PlayHitFlash(
+        int flashCount = 2,
+        float flashDuration = 0.08f,
+        float recoveryDuration = 0.06f
+    )
+    {
+        if (characterSpriteRenderer == null)
+        {
+            characterSpriteRenderer =
+                GetComponentInChildren<SpriteRenderer>(true);
+        }
+        if (characterSpriteRenderer == null)
+        {
+            yield break;
+        }
+
+        Color originalColor = characterSpriteRenderer.color;
+        Color hitColor = new(1f, 0.12f, 0.12f, originalColor.a);
+        int count = Mathf.Max(1, flashCount);
+        for (int i = 0; i < count; i++)
+        {
+            characterSpriteRenderer.color = hitColor;
+            if (flashDuration > 0f)
+            {
+                yield return new WaitForSeconds(flashDuration);
+            }
+
+            characterSpriteRenderer.color = originalColor;
+            if (i < count - 1 && recoveryDuration > 0f)
+            {
+                yield return new WaitForSeconds(recoveryDuration);
+            }
+        }
+
+        characterSpriteRenderer.color = originalColor;
+    }
+
     public void ReleaseAndDestroy()
     {
         GetComponent<GridObject>().ReleaseAndDestroy();
@@ -341,6 +402,36 @@ public class EnemyActor : MonoBehaviour, IFogVisibilityResponder
     public void RecordStolenNumber(int amount)
     {
         StolenNumberEscrow += Mathf.Max(0, amount);
+    }
+
+    public bool TryTransitionToBossNextPhase()
+    {
+        EnemyDefinition nextPhase = definition != null
+            ? definition.BossNextPhase
+            : null;
+        if (definition == null ||
+            definition.BehaviorType != EnemyBehaviorType.Boss ||
+            nextPhase == null)
+        {
+            return false;
+        }
+
+        definition = nextPhase;
+        idleAnimationState = bossPhase2IdleAnimationState;
+        attackAnimationState = bossPhase2AttackAnimationState;
+        specialAnimationState = bossPhase2SpecialAnimationState;
+        intentIndex = -1;
+        HasLockedIntent = false;
+        CurrentIntent = EnemyIntentType.Wait;
+        nextAttackBonus = 0;
+        StolenNumberEscrow = 0;
+        IsHealthResolved = false;
+        ResolvedMaxHP = 0;
+        CurrentHP = 0;
+        ResolveHealth(false);
+        PlayIdleAnimation();
+        ShowCombatInformation(1);
+        return true;
     }
 
     public void ShowExplorationInformation()
@@ -460,6 +551,78 @@ public class EnemyActor : MonoBehaviour, IFogVisibilityResponder
         }
     }
 
+    private string GetLockedIntentDescription(int damage)
+    {
+        if (definition == null)
+        {
+            return GameLocalization.Get("enemy.intent.wait");
+        }
+
+        if (definition.BehaviorType == EnemyBehaviorType.Boss)
+        {
+            return CurrentIntent switch
+            {
+                EnemyIntentType.Attack =>
+                    GameLocalization.Get("enemy.intent.attack", damage),
+                EnemyIntentType.Charge =>
+                    GameLocalization.Get("enemy.intent.charge"),
+                EnemyIntentType.Special =>
+                    GameLocalization.Get(
+                        "enemy.intent.heavy_attack",
+                        damage
+                    ),
+                EnemyIntentType.StealItem =>
+                    GameLocalization.Get(
+                        "enemy.intent.steal_item",
+                        definition.BossNoItemDamage
+                    ),
+                _ => GameLocalization.Get("enemy.intent.wait")
+            };
+        }
+
+        if (definition.BehaviorType == EnemyBehaviorType.DrunkenRaider &&
+            CurrentIntent == EnemyIntentType.Special)
+        {
+            return GameLocalization.Get("enemy.intent.drink");
+        }
+
+        if (definition.BehaviorType == EnemyBehaviorType.Hamster)
+        {
+            return CurrentIntent switch
+            {
+                EnemyIntentType.Special =>
+                    GameLocalization.Get(
+                        "enemy.intent.escape_with",
+                        StolenNumberEscrow
+                    ),
+                EnemyIntentType.Steal =>
+                    GameLocalization.Get(
+                        "enemy.intent.attack_and_steal",
+                        damage,
+                        definition.HamsterStealAmount
+                    ),
+                _ => GameLocalization.Get("enemy.intent.wait")
+            };
+        }
+
+        return CurrentIntent switch
+        {
+            EnemyIntentType.Attack =>
+                GameLocalization.Get("enemy.intent.attack", damage),
+            EnemyIntentType.Special =>
+                GameLocalization.Get("enemy.intent.peck", damage),
+            _ => GameLocalization.Get("enemy.intent.wait")
+        };
+    }
+
+    private void HandleLanguageChanged()
+    {
+        if (HasLockedIntent && fogVisibility == CellVisibility.Visible)
+        {
+            ShowLockedIntent();
+        }
+    }
+
     private EnemyIntentResolution ResolveDrunkenRaiderIntent()
     {
         if (CurrentIntent == EnemyIntentType.Attack)
@@ -522,11 +685,51 @@ public class EnemyActor : MonoBehaviour, IFogVisibilityResponder
         }
 
         return new EnemyIntentResolution(
+            definition.AttackDamage,
             0,
-            0,
-            $"偷取 {definition.HamsterStealAmount}",
+            GameLocalization.Get(
+                "enemy.action.attack_and_steal",
+                definition.AttackDamage,
+                definition.HamsterStealAmount
+            ),
             definition.HamsterStealAmount
         );
+    }
+
+    private EnemyIntentResolution ResolveBossIntent()
+    {
+        switch (CurrentIntent)
+        {
+            case EnemyIntentType.Attack:
+                return new EnemyIntentResolution(
+                    definition.AttackDamage,
+                    0,
+                    $"普攻：-{definition.AttackDamage}"
+                );
+
+            case EnemyIntentType.Charge:
+                return new EnemyIntentResolution(0, 0, "蓄力");
+
+            case EnemyIntentType.Special:
+                return new EnemyIntentResolution(
+                    definition.SpecialDamage,
+                    0,
+                    $"强力击：-{definition.SpecialDamage}"
+                );
+
+            case EnemyIntentType.StealItem:
+                return new EnemyIntentResolution(
+                    0,
+                    0,
+                    "尝试偷取随机道具",
+                    attemptsItemSteal: true,
+                    noItemFallbackDamage: definition.BossNoItemDamage,
+                    stunsPlayerOnFallback: true
+                );
+
+            default:
+                return new EnemyIntentResolution(0, 0, "等待");
+        }
     }
 
     private string GetRewardDisplay(int battleRound)
