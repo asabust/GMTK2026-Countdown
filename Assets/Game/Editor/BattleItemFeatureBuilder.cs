@@ -14,6 +14,8 @@ public static class BattleItemFeatureBuilder
         "Assets/Resources/UI/BattleActionPanel.prefab";
     private const string HudPanelPath =
         "Assets/Resources/UI/GameHUDPanel.prefab";
+    private const string PlayerStatusWorldPath =
+        "Assets/Resources/UI/PlayerBattleStatusWorldUI.prefab";
     private const string ShopPath =
         "Assets/Game/Data/Shops/DefaultShopInventory.asset";
     private const string OfferingPath =
@@ -22,8 +24,6 @@ public static class BattleItemFeatureBuilder
         "Assets/Arts/Font/fusion-pixel-12px-proportional-zh_hans SDF D.asset";
     private const string BattleFramePath =
         "Assets/Arts/UI/战斗UI-占位符/战斗框架.png";
-    private const string StatusFramePath =
-        "Assets/Arts/UI/战斗UI-占位符/战斗框架_无指向按钮版.png";
     private const string DescriptionFramePath =
         "Assets/Arts/UI/战斗UI-占位符/介绍框.png";
     private const string BackFramePath =
@@ -102,6 +102,7 @@ public static class BattleItemFeatureBuilder
         UpdateShop(items, lucky, wolf);
         UpdateOffering(items);
         CreateBattlePanelPrefab();
+        CreatePlayerBattleStatusWorldPrefab();
         ConfigureHudPrefab();
 
         AssetDatabase.SaveAssets();
@@ -332,51 +333,6 @@ public static class BattleItemFeatureBuilder
             out _
         );
 
-        GameObject statusRoot = UIObject(
-            "BattleStatusRoot",
-            primaryMenu.transform
-        );
-        SetRect(
-            statusRoot.GetComponent<RectTransform>(),
-            new Vector2(-350f, 0f),
-            new Vector2(300f, 280f)
-        );
-        Sprite statusFrame = LoadSprite(StatusFramePath);
-        CreateStatusCard(
-            "WrenchStatus",
-            statusRoot.transform,
-            font,
-            statusFrame,
-            LoadSprite("Assets/Arts/UI/icon/扳手.png"),
-            "攻击 +2\n剩余 3 次",
-            new Vector2(0f, 90f),
-            out GameObject wrenchStatus,
-            out TMP_Text wrenchStatusText
-        );
-        CreateStatusCard(
-            "ShieldStatus",
-            statusRoot.transform,
-            font,
-            statusFrame,
-            LoadSprite("Assets/Arts/UI/icon/守护者之盾.png"),
-            "护盾 6\n下个敌人阶段",
-            Vector2.zero,
-            out GameObject shieldStatus,
-            out TMP_Text shieldStatusText
-        );
-        CreateStatusCard(
-            "HeartStatus",
-            statusRoot.transform,
-            font,
-            statusFrame,
-            LoadSprite("Assets/Arts/UI/icon/少女的心事.png"),
-            "替伤 x1\n下一次怪物攻击",
-            new Vector2(0f, -90f),
-            out GameObject heartStatus,
-            out TMP_Text heartStatusText
-        );
-        statusRoot.SetActive(false);
-
         GameObject itemMenu = UIObject("ItemMenu", root.transform);
         Stretch(itemMenu.GetComponent<RectTransform>());
 
@@ -458,13 +414,6 @@ public static class BattleItemFeatureBuilder
         SetReference(serialized, "attackButtonLabel", attackLabel);
         SetReference(serialized, "itemButton", itemButton);
         SetReference(serialized, "itemButtonLabel", itemLabel);
-        SetReference(serialized, "statusRoot", statusRoot);
-        SetReference(serialized, "wrenchStatus", wrenchStatus);
-        SetReference(serialized, "wrenchStatusText", wrenchStatusText);
-        SetReference(serialized, "shieldStatus", shieldStatus);
-        SetReference(serialized, "shieldStatusText", shieldStatusText);
-        SetReference(serialized, "heartStatus", heartStatus);
-        SetReference(serialized, "heartStatusText", heartStatusText);
         SetReference(serialized, "itemMenu", itemMenu);
         SetArray(serialized, "itemSlotButtons", slotButtons);
         SetArray(serialized, "itemSlotIcons", slotIcons);
@@ -477,6 +426,132 @@ public static class BattleItemFeatureBuilder
 
         PrefabUtility.SaveAsPrefabAsset(root, BattlePanelPath);
         UnityEngine.Object.DestroyImmediate(root);
+    }
+
+    private static void CreatePlayerBattleStatusWorldPrefab()
+    {
+        TMP_FontAsset font =
+            AssetDatabase.LoadAssetAtPath<TMP_FontAsset>(FontPath);
+        Sprite panelSprite = AssetDatabase.GetBuiltinExtraResource<Sprite>(
+            "UI/Skin/UISprite.psd"
+        );
+
+        GameObject root = UIObject(
+            "PlayerBattleStatusWorldUI",
+            null
+        );
+        RectTransform rootRect = root.GetComponent<RectTransform>();
+        rootRect.sizeDelta = new Vector2(220f, 100f);
+        rootRect.localPosition = new Vector3(0f, -0.68f, 0f);
+        rootRect.localScale = Vector3.one * 0.005f;
+
+        Canvas canvas = root.AddComponent<Canvas>();
+        canvas.renderMode = RenderMode.WorldSpace;
+        canvas.overrideSorting = true;
+        canvas.sortingLayerID = SortingLayer.NameToID("Player");
+        canvas.sortingOrder = 120;
+        root.AddComponent<GraphicRaycaster>();
+        PlayerBattleStatusWorldUI statusUI =
+            root.AddComponent<PlayerBattleStatusWorldUI>();
+
+        GameObject content = UIObject("StatusContent", root.transform);
+        SetRect(
+            content.GetComponent<RectTransform>(),
+            new Vector2(0f, 18f),
+            new Vector2(210f, 58f)
+        );
+        HorizontalLayoutGroup layout =
+            content.AddComponent<HorizontalLayoutGroup>();
+        layout.spacing = 8f;
+        layout.childAlignment = TextAnchor.MiddleCenter;
+        layout.childControlWidth = false;
+        layout.childControlHeight = false;
+        layout.childForceExpandWidth = false;
+        layout.childForceExpandHeight = false;
+
+        Image wrench = CreateWorldStatusIcon(
+            "WrenchStatus",
+            content.transform,
+            LoadSprite("Assets/Arts/UI/icon/扳手.png")
+        );
+        Image shield = CreateWorldStatusIcon(
+            "ShieldStatus",
+            content.transform,
+            LoadSprite("Assets/Arts/UI/icon/守护者之盾.png")
+        );
+        Image heart = CreateWorldStatusIcon(
+            "HeartStatus",
+            content.transform,
+            LoadSprite("Assets/Arts/UI/icon/少女的心事.png")
+        );
+
+        GameObject tooltipController = UIObject(
+            "StatusTooltipController",
+            root.transform
+        );
+        Stretch(tooltipController.GetComponent<RectTransform>());
+        HoverTooltipPresenter tooltip =
+            tooltipController.AddComponent<HoverTooltipPresenter>();
+        Image tooltipPanel = ImageObject(
+            "Tooltip",
+            tooltipController.transform,
+            panelSprite,
+            new Vector2(0f, -32f),
+            new Vector2(185f, 36f)
+        );
+        tooltipPanel.type = Image.Type.Sliced;
+        tooltipPanel.color = new Color(0.05f, 0.045f, 0.065f, 0.94f);
+        TMP_Text tooltipTitle = Text(
+            "Title",
+            tooltipPanel.transform,
+            font,
+            "扳手 +2",
+            20f,
+            Vector2.zero,
+            new Vector2(165f, 28f),
+            TextAlignmentOptions.Center
+        );
+
+        SerializedObject tooltipData = new(tooltip);
+        SetReference(
+            tooltipData,
+            "tooltipRoot",
+            tooltipPanel.gameObject
+        );
+        SetReference(tooltipData, "titleText", tooltipTitle);
+        tooltipData.ApplyModifiedPropertiesWithoutUndo();
+        tooltipPanel.gameObject.SetActive(false);
+
+        SerializedObject statusData = new(statusUI);
+        SetReference(statusData, "statusContent", content);
+        SetReference(statusData, "wrenchIcon", wrench);
+        SetReference(statusData, "shieldIcon", shield);
+        SetReference(statusData, "heartIcon", heart);
+        SetReference(statusData, "tooltip", tooltip);
+        statusData.ApplyModifiedPropertiesWithoutUndo();
+        content.SetActive(false);
+
+        PrefabUtility.SaveAsPrefabAsset(root, PlayerStatusWorldPath);
+        UnityEngine.Object.DestroyImmediate(root);
+    }
+
+    private static Image CreateWorldStatusIcon(
+        string name,
+        Transform parent,
+        Sprite sprite
+    )
+    {
+        Image icon = ImageObject(
+            name,
+            parent,
+            sprite,
+            Vector2.zero,
+            new Vector2(52f, 52f)
+        );
+        icon.preserveAspect = true;
+        icon.raycastTarget = true;
+        icon.gameObject.AddComponent<HoverTooltipTarget>();
+        return icon;
     }
 
     private static void ConfigureHudPrefab()
@@ -495,6 +570,14 @@ public static class BattleItemFeatureBuilder
 
             ClearChildren(itemArea);
             ClearChildren(relicArea);
+            Transform oldTooltip = FindDeep(
+                root.transform,
+                "InventoryTooltipController"
+            );
+            if (oldTooltip != null)
+            {
+                UnityEngine.Object.DestroyImmediate(oldTooltip.gameObject);
+            }
             TMP_FontAsset font =
                 AssetDatabase.LoadAssetAtPath<TMP_FontAsset>(FontPath);
             Sprite frame = AssetDatabase.GetBuiltinExtraResource<Sprite>(
@@ -531,11 +614,19 @@ public static class BattleItemFeatureBuilder
                 );
             }
 
+            HoverTooltipPresenter inventoryTooltip =
+                CreateInventoryTooltip(root.transform, font);
+
             SerializedObject serialized = new(panel);
             SetArray(serialized, "itemIcons", itemIcons);
             SetArray(serialized, "itemCounts", itemCounts);
             SetArray(serialized, "relicIcons", relicIcons);
             SetArray(serialized, "relicCounts", relicCounts);
+            SetReference(
+                serialized,
+                "inventoryTooltip",
+                inventoryTooltip
+            );
             serialized.ApplyModifiedPropertiesWithoutUndo();
             PrefabUtility.SaveAsPrefabAsset(root, HudPanelPath);
         }
@@ -567,6 +658,7 @@ public static class BattleItemFeatureBuilder
             new Vector2(0f, 0.5f);
         background.type = Image.Type.Sliced;
         background.color = new Color(0.08f, 0.07f, 0.1f, 0.82f);
+        background.gameObject.AddComponent<HoverTooltipTarget>();
         icon = ImageObject(
             "Icon",
             background.transform,
@@ -586,6 +678,62 @@ public static class BattleItemFeatureBuilder
             new Vector2(48f, 28f),
             TextAlignmentOptions.BottomRight
         );
+    }
+
+    private static HoverTooltipPresenter CreateInventoryTooltip(
+        Transform parent,
+        TMP_FontAsset font
+    )
+    {
+        GameObject controller = UIObject(
+            "InventoryTooltipController",
+            parent
+        );
+        Stretch(controller.GetComponent<RectTransform>());
+        HoverTooltipPresenter presenter =
+            controller.AddComponent<HoverTooltipPresenter>();
+
+        Image frame = ImageObject(
+            "TooltipFrame",
+            controller.transform,
+            LoadSprite(DescriptionFramePath),
+            Vector2.zero,
+            new Vector2(300f, 328f)
+        );
+        RectTransform frameRect = frame.rectTransform;
+        frameRect.anchorMin = frameRect.anchorMax = new Vector2(0f, 1f);
+        frameRect.pivot = new Vector2(0f, 1f);
+        frameRect.anchoredPosition = new Vector2(350f, -105f);
+
+        TMP_Text title = Text(
+            "Title",
+            frame.transform,
+            font,
+            "道具名称",
+            27f,
+            new Vector2(0f, 105f),
+            new Vector2(230f, 52f),
+            TextAlignmentOptions.Center
+        );
+        TMP_Text description = Text(
+            "Description",
+            frame.transform,
+            font,
+            "道具介绍",
+            20f,
+            new Vector2(0f, -25f),
+            new Vector2(224f, 185f),
+            TextAlignmentOptions.TopLeft
+        );
+        description.enableWordWrapping = true;
+
+        SerializedObject serialized = new(presenter);
+        SetReference(serialized, "tooltipRoot", frame.gameObject);
+        SetReference(serialized, "titleText", title);
+        SetReference(serialized, "descriptionText", description);
+        serialized.ApplyModifiedPropertiesWithoutUndo();
+        frame.gameObject.SetActive(false);
+        return presenter;
     }
 
     private static void CreateActionButton(
@@ -637,49 +785,6 @@ public static class BattleItemFeatureBuilder
             new Vector2(105f, -24f),
             new Vector2(60f, 28f),
             TextAlignmentOptions.BottomRight
-        );
-    }
-
-    private static void CreateStatusCard(
-        string name,
-        Transform parent,
-        TMP_FontAsset font,
-        Sprite frame,
-        Sprite iconSprite,
-        string value,
-        Vector2 position,
-        out GameObject card,
-        out TMP_Text statusText
-    )
-    {
-        Image background = ImageObject(
-            name,
-            parent,
-            frame,
-            position,
-            new Vector2(300f, 82f)
-        );
-        background.preserveAspect = false;
-        card = background.gameObject;
-
-        Image icon = ImageObject(
-            "Icon",
-            card.transform,
-            iconSprite,
-            new Vector2(-111f, 0f),
-            new Vector2(68f, 68f)
-        );
-        icon.preserveAspect = true;
-
-        statusText = Text(
-            "StatusText",
-            card.transform,
-            font,
-            value,
-            20f,
-            new Vector2(31f, 0f),
-            new Vector2(205f, 64f),
-            TextAlignmentOptions.MidlineLeft
         );
     }
 

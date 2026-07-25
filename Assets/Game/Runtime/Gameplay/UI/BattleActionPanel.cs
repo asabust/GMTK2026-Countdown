@@ -38,7 +38,6 @@ public sealed class BattleActionRequest
         Func<bool> canStruggle,
         Func<bool> struggle,
         PlayerInventory inventory,
-        PlayerRunStats runStats,
         Func<CollectibleDefinition, BattleItemUseResult> useItem,
         Func<CollectibleDefinition, BattleItemUseResult> validateItem,
         bool isAutoPassing = false
@@ -52,7 +51,6 @@ public sealed class BattleActionRequest
         CanStruggle = canStruggle;
         Struggle = struggle;
         Inventory = inventory;
-        RunStats = runStats;
         UseItem = useItem;
         ValidateItem = validateItem;
         IsAutoPassing = isAutoPassing;
@@ -66,7 +64,6 @@ public sealed class BattleActionRequest
     public Func<bool> CanStruggle { get; }
     public Func<bool> Struggle { get; }
     public PlayerInventory Inventory { get; }
-    public PlayerRunStats RunStats { get; }
     public Func<CollectibleDefinition, BattleItemUseResult> UseItem { get; }
     public Func<CollectibleDefinition, BattleItemUseResult> ValidateItem { get; }
     public bool IsAutoPassing { get; }
@@ -85,15 +82,6 @@ public class BattleActionPanel : UIPanel
     [SerializeField] private Button itemButton;
     [SerializeField] private TMP_Text itemButtonLabel;
     [SerializeField, HideInInspector] private Button struggleButton;
-
-    [Header("Primary menu status")]
-    [SerializeField] private GameObject statusRoot;
-    [SerializeField] private GameObject wrenchStatus;
-    [SerializeField] private TMP_Text wrenchStatusText;
-    [SerializeField] private GameObject shieldStatus;
-    [SerializeField] private TMP_Text shieldStatusText;
-    [SerializeField] private GameObject heartStatus;
-    [SerializeField] private TMP_Text heartStatusText;
 
     [Header("Item menu")]
     [SerializeField] private GameObject itemMenu;
@@ -134,10 +122,6 @@ public class BattleActionPanel : UIPanel
         if (request?.Inventory != null)
         {
             request.Inventory.Changed += HandleInventoryChanged;
-        }
-        if (request?.RunStats != null)
-        {
-            request.RunStats.Changed += RefreshBattleStatuses;
         }
 
         if (feedbackText != null)
@@ -182,7 +166,6 @@ public class BattleActionPanel : UIPanel
         selectedItemIndex = -1;
         primaryMenu?.SetActive(true);
         itemMenu?.SetActive(false);
-        RefreshBattleStatuses();
         RefreshPrimaryMenu();
     }
 
@@ -385,41 +368,6 @@ public class BattleActionPanel : UIPanel
         if (request?.Inventory != null)
         {
             request.Inventory.Changed -= HandleInventoryChanged;
-        }
-        if (request?.RunStats != null)
-        {
-            request.RunStats.Changed -= RefreshBattleStatuses;
-        }
-    }
-
-    private void RefreshBattleStatuses()
-    {
-        PlayerRunStats stats = request?.RunStats;
-        bool hasWrench = stats != null && stats.TimedAttackBonus > 0;
-        bool hasShield = stats != null && stats.NextEnemyPhaseShield > 0;
-        bool hasHeart = stats != null && stats.NegateNextAttack;
-
-        statusRoot?.SetActive(hasWrench || hasShield || hasHeart);
-        wrenchStatus?.SetActive(hasWrench);
-        shieldStatus?.SetActive(hasShield);
-        heartStatus?.SetActive(hasHeart);
-
-        if (hasWrench && wrenchStatusText != null)
-        {
-            IReadOnlyList<int> durations =
-                stats.GetTimedAttackBonusDurations();
-            wrenchStatusText.text =
-                $"攻击 +{stats.TimedAttackBonus}\n" +
-                $"剩余 {string.Join(" / ", durations)} 次";
-        }
-        if (hasShield && shieldStatusText != null)
-        {
-            shieldStatusText.text =
-                $"护盾 {stats.NextEnemyPhaseShield}\n下个敌人阶段";
-        }
-        if (hasHeart && heartStatusText != null)
-        {
-            heartStatusText.text = "替伤 x1\n下一次怪物攻击";
         }
     }
 

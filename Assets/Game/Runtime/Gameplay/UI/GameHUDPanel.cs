@@ -20,6 +20,7 @@ public class GameHUDPanel : UIPanel
     [SerializeField] private TMP_Text[] itemCounts = new TMP_Text[4];
     [SerializeField] private Image[] relicIcons = new Image[3];
     [SerializeField] private TMP_Text[] relicCounts = new TMP_Text[3];
+    [SerializeField] private HoverTooltipPresenter inventoryTooltip;
 
     private readonly Queue<NumberDeltaPopup> popupPool = new();
     private readonly Queue<NumberChange> pendingChanges = new();
@@ -56,6 +57,7 @@ public class GameHUDPanel : UIPanel
     {
         BindNumberResource(null);
         BindInventory(null);
+        inventoryTooltip?.Hide();
         RecycleAllPopups();
     }
 
@@ -128,14 +130,15 @@ public class GameHUDPanel : UIPanel
                 ));
         }
 
-        RefreshSlots(itemIcons, itemCounts, items);
-        RefreshSlots(relicIcons, relicCounts, relics);
+        RefreshSlots(itemIcons, itemCounts, items, inventoryTooltip);
+        RefreshSlots(relicIcons, relicCounts, relics, inventoryTooltip);
     }
 
     private static void RefreshSlots(
         Image[] icons,
         TMP_Text[] counts,
-        IReadOnlyList<CollectibleStack> stacks
+        IReadOnlyList<CollectibleStack> stacks,
+        HoverTooltipPresenter tooltip
     )
     {
         for (int i = 0; i < icons.Length; i++)
@@ -154,6 +157,14 @@ public class GameHUDPanel : UIPanel
                         ? $"x{stack.Count}"
                         : string.Empty;
             }
+
+            HoverTooltipTarget target =
+                icons[i]?.GetComponentInParent<HoverTooltipTarget>();
+            target?.Bind(
+                tooltip,
+                definition?.DisplayName,
+                definition?.Description
+            );
         }
     }
 

@@ -21,6 +21,7 @@ public class EncounterController : MonoBehaviour
     private NumberResource numberResource;
     private PlayerInventory playerInventory;
     private PlayerRunStats playerRunStats;
+    private PlayerBattleStatusWorldUI battleStatusWorldUI;
 
     [SerializeField, Min(1)] private int basicAttackCost = 1;
     [SerializeField, Min(1)] private int basicAttackDamage = 3;
@@ -67,6 +68,7 @@ public class EncounterController : MonoBehaviour
         lockedRewardResult = default;
         currentBattleLoot = 0;
         hasUsedStruggle = false;
+        battleStatusWorldUI?.SetCombatVisible(false);
 
         UIManager.Instance?.Close<PreBattleRollPanel>();
         UIManager.Instance?.Close<BattleActionPanel>();
@@ -87,6 +89,7 @@ public class EncounterController : MonoBehaviour
         numberResource = GetComponent<NumberResource>();
         playerInventory = GetComponent<PlayerInventory>();
         playerRunStats = GetComponent<PlayerRunStats>();
+        EnsureBattleStatusWorldUI();
     }
 
     private void OnEnable()
@@ -118,6 +121,7 @@ public class EncounterController : MonoBehaviour
         UIManager.Instance?.Close<BattleActionPanel>();
         UIManager.Instance?.Close<BattleRewardPanel>();
         isTrackingNumberLoss = false;
+        battleStatusWorldUI?.SetCombatVisible(false);
         if (enemyTurnRoutine != null)
         {
             StopCoroutine(enemyTurnRoutine);
@@ -148,6 +152,7 @@ public class EncounterController : MonoBehaviour
 
         CurrentEnemy = enemy;
         hasUsedStruggle = false;
+        battleStatusWorldUI?.SetCombatVisible(true);
         CurrentEnemy.FacePlayer(playerController.GridPosition);
         EncounterStarted?.Invoke(enemy);
 
@@ -233,7 +238,6 @@ public class EncounterController : MonoBehaviour
                 CanStruggleNow,
                 TryStruggle,
                 playerInventory,
-                playerRunStats,
                 TryUseBattleItem,
                 ValidateBattleItem,
                 shouldAutoPass
@@ -388,6 +392,7 @@ public class EncounterController : MonoBehaviour
     {
         isTrackingNumberLoss = false;
         UIManager.Instance?.Close<BattleActionPanel>();
+        battleStatusWorldUI?.SetCombatVisible(false);
         CurrentEnemy?.WorldUI?.HideIntent();
         playerController.SetExternalInputLocked(true);
         GameManager.Instance?.GameOver("数字跌破 0");
@@ -409,6 +414,7 @@ public class EncounterController : MonoBehaviour
         rewardWorldPosition = defeatedEnemy.transform.position;
         currentBattleLoot = battleLoot;
         CurrentEnemy = null;
+        battleStatusWorldUI?.SetCombatVisible(false);
         defeatedEnemy.ReleaseAndDestroy();
 
         rewardChoiceResolved = false;
@@ -484,6 +490,29 @@ public class EncounterController : MonoBehaviour
         currentBattleLoot = 0;
         hasUsedStruggle = false;
         SetPhase(EncounterPhase.Exploration);
+    }
+
+    private void EnsureBattleStatusWorldUI()
+    {
+        battleStatusWorldUI =
+            GetComponentInChildren<PlayerBattleStatusWorldUI>(true);
+        if (battleStatusWorldUI == null)
+        {
+            GameObject prefab = Resources.Load<GameObject>(
+                "UI/PlayerBattleStatusWorldUI"
+            );
+            if (prefab != null)
+            {
+                battleStatusWorldUI = Instantiate(
+                    prefab,
+                    transform,
+                    false
+                ).GetComponent<PlayerBattleStatusWorldUI>();
+            }
+        }
+
+        battleStatusWorldUI?.Bind(playerRunStats);
+        battleStatusWorldUI?.SetCombatVisible(false);
     }
 
     private float GetEffectiveGreedySuccessChance()
