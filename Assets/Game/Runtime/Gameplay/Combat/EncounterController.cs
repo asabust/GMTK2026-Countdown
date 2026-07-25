@@ -20,6 +20,7 @@ public class EncounterController : MonoBehaviour
     private PlayerGridController playerController;
     private NumberResource numberResource;
     private PlayerInventory playerInventory;
+    private PlayerRunStats playerRunStats;
 
     [SerializeField, Min(1)] private int basicAttackCost = 1;
     [SerializeField, Min(1)] private int basicAttackDamage = 3;
@@ -43,6 +44,8 @@ public class EncounterController : MonoBehaviour
     public EnemyActor CurrentEnemy { get; private set; }
     public bool IsInEncounter => CurrentEnemy != null;
     public int AccumulatedNumberLoss => accumulatedNumberLoss;
+    public int CurrentBasicAttackDamage =>
+        basicAttackDamage + (playerRunStats?.OfferingAttackBonus ?? 0);
 
     public event Action<EncounterPhase> PhaseChanged;
     public event Action<EnemyActor> EncounterStarted;
@@ -81,6 +84,7 @@ public class EncounterController : MonoBehaviour
         playerController = GetComponent<PlayerGridController>();
         numberResource = GetComponent<NumberResource>();
         playerInventory = GetComponent<PlayerInventory>();
+        playerRunStats = GetComponent<PlayerRunStats>();
     }
 
     private void OnEnable()
@@ -218,7 +222,7 @@ public class EncounterController : MonoBehaviour
             new BattleActionRequest(
                 CurrentEnemy,
                 basicAttackCost,
-                basicAttackDamage,
+                CurrentBasicAttackDamage,
                 TryBasicAttack,
                 struggleDamage,
                 canStruggle,
@@ -253,7 +257,7 @@ public class EncounterController : MonoBehaviour
         }
 
         SetPhase(EncounterPhase.ResolvingPlayerAction);
-        bool defeated = CurrentEnemy.ApplyDamage(basicAttackDamage);
+        bool defeated = CurrentEnemy.ApplyDamage(CurrentBasicAttackDamage);
         if (defeated)
         {
             ResolveEnemyDefeated();

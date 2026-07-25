@@ -1,0 +1,31 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 296a752c60551407d9ff9bef7608947b, type: 3}
+  m_Name: DefaultOffering
+  m_EditorClassIdentifier: 
+  offeringId: default_offering
+  maximumAmount: 100
+  attackIncrease: 1
+  outcomes:
+  - outcome: 0
+    weight: 10
+  - outcome: 1
+    weight: 30
+  - outcome: 2
+    weight: 20
+  - outcome: 3
+    weight: 20
+  - outcome: 4
+    weight: 20
+  itemPool:
+  - collectible: {fileID: 11400000, guid: aaa2510ef20454769b4c818cdaf1afaa, type: 2}
+    weight: 1

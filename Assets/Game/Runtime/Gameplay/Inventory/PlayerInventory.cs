@@ -30,7 +30,7 @@ public enum InventoryAddResult
 [DisallowMultipleComponent]
 public sealed class PlayerInventory : MonoBehaviour
 {
-    [SerializeField, Min(1)] private int itemSlotCapacity = 3;
+    [SerializeField, Min(1)] private int itemSlotCapacity = 4;
     [SerializeField] private List<CollectibleStack> stacks = new();
 
     public IReadOnlyList<CollectibleStack> Stacks => stacks;

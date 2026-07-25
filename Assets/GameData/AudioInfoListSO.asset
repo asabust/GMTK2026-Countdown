@@ -12,4 +12,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e959c4b5f175b4afe8626a03f209ee86, type: 3}
   m_Name: AudioInfoListSO
   m_EditorClassIdentifier: 
-  audioInfos: []
+  audioInfos:
+  - audioName: 0
+    clip: {fileID: 0}
+    volume: 0
+    loop: 0

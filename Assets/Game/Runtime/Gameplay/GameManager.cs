@@ -56,6 +56,7 @@ public class GameManager : Singleton<GameManager>
         UIManager.Instance?.Close<GameOverPanel>();
         NumberResource.Instance?.ResetForNewRun();
         FindObjectOfType<PlayerInventory>()?.ResetForNewRun();
+        FindObjectOfType<PlayerRunStats>()?.ResetForNewRun();
         SetGamePhase(GamePhase.Gameplay);
         TransitionManager.Instance.TransitionTo(firstGameScene);
     }

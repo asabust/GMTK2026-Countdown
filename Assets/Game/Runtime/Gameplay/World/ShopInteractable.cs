@@ -1,26 +1,27 @@
-using System;
 using UnityEngine;
-
-[Serializable]
-public sealed class ShopProduct
-{
-    [SerializeField] private CollectibleDefinition collectible;
-    [SerializeField, Min(0)] private int price;
-    public CollectibleDefinition Collectible => collectible;
-    public int Price => price;
-}
 
 public sealed class ShopOffer
 {
-    public ShopOffer(CollectibleDefinition collectible, int price)
+    public ShopOffer(
+        CollectibleDefinition collectible,
+        int price,
+        int stock
+    )
     {
         Collectible = collectible;
         Price = price;
+        RemainingStock = Mathf.Max(0, stock);
     }
 
     public CollectibleDefinition Collectible { get; }
     public int Price { get; }
-    public bool IsSoldOut { get; internal set; }
+    public int RemainingStock { get; private set; }
+    public bool IsSoldOut => RemainingStock <= 0;
+
+    public void ConsumeOne()
+    {
+        RemainingStock = Mathf.Max(0, RemainingStock - 1);
+    }
 }
 
 public enum ShopPurchaseResult
@@ -35,7 +36,7 @@ public enum ShopPurchaseResult
 
 public sealed class ShopInteractable : WorldInteractable
 {
-    [SerializeField] private ShopProduct[] products;
+    [SerializeField] private ShopInventoryDefinition inventoryDefinition;
 
     private WorldInteractionContext context;
     private PlayerInventory inventory;
@@ -53,13 +54,23 @@ public sealed class ShopInteractable : WorldInteractable
             return false;
         }
 
-        offers = new ShopOffer[products?.Length ?? 0];
+        ShopProduct[] products = inventoryDefinition != null
+            ? inventoryDefinition.Products
+            : null;
+        if (products == null || products.Length == 0)
+        {
+            Debug.LogError("Shop has no inventory configuration.", this);
+            return false;
+        }
+
+        offers = new ShopOffer[products.Length];
         for (int i = 0; i < offers.Length; i++)
         {
             ShopProduct product = products[i];
             offers[i] = new ShopOffer(
                 product?.Collectible,
-                product?.Price ?? 0
+                product?.Price ?? 0,
+                product?.Stock ?? 0
             );
         }
 
@@ -117,7 +128,7 @@ public sealed class ShopInteractable : WorldInteractable
             return ShopPurchaseResult.InvalidOffer;
         }
 
-        offer.IsSoldOut = true;
+        offer.ConsumeOne();
         return ShopPurchaseResult.Success;
     }
 

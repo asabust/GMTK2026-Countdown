@@ -119,13 +119,25 @@ public sealed class ShopPanel : UIPanel
                     "数字不足，购买后不能低于 0",
                 ShopPurchaseResult.ItemSlotsFull => "道具栏已满，无法购买",
                 ShopPurchaseResult.MaximumStacksReached =>
-                    "该藏品已达到最大层数",
+                    GetMaximumStacksMessage(),
                 ShopPurchaseResult.SoldOut => "这件商品已经售罄",
                 _ => "当前无法购买"
             };
         }
         RefreshOffers();
         RefreshSelection();
+    }
+
+    private string GetMaximumStacksMessage()
+    {
+        ShopOffer offer = request?.Offers != null &&
+                          selectedIndex >= 0 &&
+                          selectedIndex < request.Offers.Length
+            ? request.Offers[selectedIndex]
+            : null;
+        return offer?.Collectible?.Kind == CollectibleKind.Item
+            ? "该道具已达到最大数量"
+            : "该藏品已达到最大层数";
     }
 
     private void Leave()
@@ -181,7 +193,7 @@ public sealed class ShopPanel : UIPanel
                 : "道具";
             dialogueText.text =
                 $"【{kind}】{offer.Collectible.DisplayName}\n" +
-                $"{offer.Collectible.Description}\n数字：{current} → {after}";
+                $"{offer.Collectible.Description}\n数字：{current} > {after}";
         }
 
         bool affordable = request.Number?.CanSpend(offer.Price) == true;
