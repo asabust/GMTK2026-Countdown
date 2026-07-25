@@ -17,6 +17,11 @@ public sealed class CollectibleStack
     public CollectibleDefinition Definition => definition;
     public int Count => count;
     internal void AddOne() => count++;
+    internal bool RemoveOne()
+    {
+        count = Mathf.Max(0, count - 1);
+        return count == 0;
+    }
 }
 
 public enum InventoryAddResult
@@ -85,6 +90,58 @@ public sealed class PlayerInventory : MonoBehaviour
 
         Changed?.Invoke();
         return InventoryAddResult.Success;
+    }
+
+    public int GetCount(CollectibleDefinition definition) =>
+        definition == null ? 0 : GetCount(definition.CollectibleId);
+
+    public int GetCount(string collectibleId)
+    {
+        CollectibleStack stack = FindStack(collectibleId);
+        return stack?.Count ?? 0;
+    }
+
+    public bool TryConsume(CollectibleDefinition definition)
+    {
+        if (definition == null || definition.Kind != CollectibleKind.Item)
+        {
+            return false;
+        }
+
+        CollectibleStack stack = FindStack(definition.CollectibleId);
+        if (stack == null)
+        {
+            return false;
+        }
+
+        if (stack.RemoveOne())
+        {
+            stacks.Remove(stack);
+            UsedItemSlots = Mathf.Max(0, UsedItemSlots - 1);
+        }
+
+        Changed?.Invoke();
+        return true;
+    }
+
+    public List<CollectibleStack> GetOrderedItemStacks()
+    {
+        List<CollectibleStack> items = stacks.FindAll(stack =>
+            stack?.Definition != null &&
+            stack.Definition.Kind == CollectibleKind.Item);
+        items.Sort((left, right) =>
+        {
+            int order = left.Definition.InventoryOrder.CompareTo(
+                right.Definition.InventoryOrder
+            );
+            return order != 0
+                ? order
+                : string.CompareOrdinal(
+                    left.Definition.CollectibleId,
+                    right.Definition.CollectibleId
+                );
+        });
+        return items;
     }
 
     public float GetRelicEffect(CollectibleEffectType type, bool highest = false)

@@ -27,5 +27,11 @@ MonoBehaviour:
   - outcome: 4
     weight: 20
   itemPool:
+  - collectible: {fileID: 11400000, guid: 47840a1cb68e44f43b0c652588562525, type: 2}
+    weight: 1
+  - collectible: {fileID: 11400000, guid: 3b94c1836fa4e491c8afaddd5386dda9, type: 2}
+    weight: 1
+  - collectible: {fileID: 11400000, guid: 4485c9127cf5145298783680f7f8abca, type: 2}
+    weight: 1
   - collectible: {fileID: 11400000, guid: aaa2510ef20454769b4c818cdaf1afaa, type: 2}
     weight: 1

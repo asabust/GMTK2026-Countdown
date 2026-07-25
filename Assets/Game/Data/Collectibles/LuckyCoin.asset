@@ -16,8 +16,10 @@ MonoBehaviour:
   displayName: "\u5E78\u8FD0\u786C\u5E01"
   description: "\u6BCF\u5C42\u4F7F\u7B2C\u4E00\u6B21\u8D2A\u5A6A\u6210\u529F\u7387\u63D0\u9AD8
     10%\u3002"
-  icon: {fileID: 21300000, guid: 6d8d7dffe34a5414e9e67268dfb2f890, type: 3}
+  icon: {fileID: 21300000, guid: 710dcabc1071d40edb431d30b7c2996d, type: 3}
   kind: 1
   maximumStacks: 3
+  inventoryOrder: 1
   effectType: 2
   effectValue: 0.1
+  effectDuration: 0

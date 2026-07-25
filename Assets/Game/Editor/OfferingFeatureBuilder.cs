@@ -1,4 +1,5 @@
 #if UNITY_EDITOR
+using System.Collections.Generic;
 using System.Linq;
 using TMPro;
 using UnityEditor;
@@ -30,18 +31,27 @@ public static class OfferingFeatureBuilder
     public static void Build()
     {
         EnsureFolder("Assets/Game/Data", "Offerings");
-        CollectibleDefinition potion =
-            AssetDatabase.LoadAssetAtPath<CollectibleDefinition>(
-                "Assets/Game/Data/Collectibles/MagicPotion.asset"
-            );
-        if (potion == null)
+        CollectibleDefinition[] items =
         {
-            Debug.LogError("MagicPotion collectible is required.");
+            LoadCollectible("Wrench"),
+            LoadCollectible("GirlsThoughts"),
+            LoadCollectible("GuardianShield"),
+            LoadCollectible("MagicPotion")
+        };
+        if (items.Any(item => item == null))
+        {
+            Debug.LogError(
+                "All four battle item collectibles are required. " +
+                "Run Tools/Zero/Build Battle Item Feature first."
+            );
             return;
         }
 
-        SetMaximumStacks(potion, 3);
-        OfferingDefinition definition = CreateDefinition(potion);
+        foreach (CollectibleDefinition item in items)
+        {
+            SetMaximumStacks(item, 3);
+        }
+        OfferingDefinition definition = CreateDefinition(items);
         CreatePanelPrefab();
 
         SceneSetup[] setup = EditorSceneManager.GetSceneManagerSetup();
@@ -55,7 +65,7 @@ public static class OfferingFeatureBuilder
     }
 
     private static OfferingDefinition CreateDefinition(
-        CollectibleDefinition potion
+        IReadOnlyList<CollectibleDefinition> items
     )
     {
         OfferingDefinition definition =
@@ -93,16 +103,24 @@ public static class OfferingFeatureBuilder
         }
 
         SerializedProperty pool = serialized.FindProperty("itemPool");
-        pool.arraySize = 1;
-        SerializedProperty poolEntry = pool.GetArrayElementAtIndex(0);
-        poolEntry.FindPropertyRelative("collectible").objectReferenceValue =
-            potion;
-        poolEntry.FindPropertyRelative("weight").intValue = 1;
+        pool.arraySize = items.Count;
+        for (int i = 0; i < items.Count; i++)
+        {
+            SerializedProperty poolEntry = pool.GetArrayElementAtIndex(i);
+            poolEntry.FindPropertyRelative("collectible").objectReferenceValue =
+                items[i];
+            poolEntry.FindPropertyRelative("weight").intValue = 1;
+        }
 
         serialized.ApplyModifiedPropertiesWithoutUndo();
         EditorUtility.SetDirty(definition);
         return definition;
     }
+
+    private static CollectibleDefinition LoadCollectible(string assetName) =>
+        AssetDatabase.LoadAssetAtPath<CollectibleDefinition>(
+            $"Assets/Game/Data/Collectibles/{assetName}.asset"
+        );
 
     private static void SetMaximumStacks(
         CollectibleDefinition definition,

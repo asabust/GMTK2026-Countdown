@@ -45,7 +45,9 @@ public class EncounterController : MonoBehaviour
     public bool IsInEncounter => CurrentEnemy != null;
     public int AccumulatedNumberLoss => accumulatedNumberLoss;
     public int CurrentBasicAttackDamage =>
-        basicAttackDamage + (playerRunStats?.OfferingAttackBonus ?? 0);
+        basicAttackDamage +
+        (playerRunStats?.OfferingAttackBonus ?? 0) +
+        (playerRunStats?.TimedAttackBonus ?? 0);
 
     public event Action<EncounterPhase> PhaseChanged;
     public event Action<EnemyActor> EncounterStarted;
@@ -216,17 +218,24 @@ public class EncounterController : MonoBehaviour
             numberResource != null &&
             numberResource.CurrentValue == 0 &&
             !hasUsedStruggle;
-        bool shouldAutoPass = !canUseBasicAttack && !canStruggle;
+        bool shouldAutoPass =
+            !canUseBasicAttack &&
+            !canStruggle &&
+            !HasUsableBattleItem();
 
         UIManager.Instance?.Open<BattleActionPanel>(
             new BattleActionRequest(
                 CurrentEnemy,
                 basicAttackCost,
-                CurrentBasicAttackDamage,
+                () => CurrentBasicAttackDamage,
                 TryBasicAttack,
                 struggleDamage,
-                canStruggle,
+                CanStruggleNow,
                 TryStruggle,
+                playerInventory,
+                playerRunStats,
+                TryUseBattleItem,
+                ValidateBattleItem,
                 shouldAutoPass
             )
         );
@@ -258,6 +267,7 @@ public class EncounterController : MonoBehaviour
 
         SetPhase(EncounterPhase.ResolvingPlayerAction);
         bool defeated = CurrentEnemy.ApplyDamage(CurrentBasicAttackDamage);
+        playerRunStats?.CompletePlayerAction();
         if (defeated)
         {
             ResolveEnemyDefeated();
@@ -285,6 +295,7 @@ public class EncounterController : MonoBehaviour
         hasUsedStruggle = true;
         SetPhase(EncounterPhase.ResolvingPlayerAction);
         bool defeated = CurrentEnemy.ApplyDamage(struggleDamage);
+        playerRunStats?.CompletePlayerAction();
         if (defeated)
         {
             ResolveEnemyDefeated();
@@ -333,9 +344,16 @@ public class EncounterController : MonoBehaviour
         SetPhase(EncounterPhase.ResolvingEnemyAction);
         actingEnemy.PlayCurrentIntentAnimation();
 
-        if (damage > 0)
+        IncomingAttackResolution attackResolution =
+            playerRunStats != null
+                ? playerRunStats.ResolveIncomingAttack(damage)
+                : new IncomingAttackResolution(damage, 0, false, damage);
+        if (attackResolution.FinalDamage > 0)
         {
-            numberResource.TakeDamage(damage, transform.position);
+            numberResource.TakeDamage(
+                attackResolution.FinalDamage,
+                transform.position
+            );
         }
 
         float presentationDuration = Mathf.Max(
@@ -348,6 +366,7 @@ public class EncounterController : MonoBehaviour
         }
 
         actingEnemy.PlayIdleAnimation();
+        playerRunStats?.CompleteEnemyPhase();
         enemyTurnRoutine = null;
 
         if (numberResource.CurrentValue <= numberResource.MinimumValue)
@@ -487,6 +506,168 @@ public class EncounterController : MonoBehaviour
             : 0f;
         return overrideValue > 0f ? overrideValue : greedyMultiplier;
     }
+
+    private bool CanStruggleNow() =>
+        Phase == EncounterPhase.PlayerTurn &&
+        numberResource != null &&
+        numberResource.CurrentValue == 0 &&
+        !hasUsedStruggle;
+
+    private bool HasUsableBattleItem()
+    {
+        if (playerInventory == null)
+        {
+            return false;
+        }
+
+        foreach (CollectibleStack stack in playerInventory.GetOrderedItemStacks())
+        {
+            if (ValidateBattleItem(stack.Definition).Succeeded)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private BattleItemUseResult ValidateBattleItem(
+        CollectibleDefinition definition
+    )
+    {
+        if (Phase != EncounterPhase.PlayerTurn || CurrentEnemy == null)
+        {
+            return ItemResult(
+                BattleItemUseStatus.WrongPhase,
+                "只能在玩家战斗回合使用"
+            );
+        }
+        if (definition == null ||
+            definition.Kind != CollectibleKind.Item ||
+            definition.EffectType == CollectibleEffectType.None)
+        {
+            return ItemResult(
+                BattleItemUseStatus.InvalidItem,
+                "这个道具还没有配置战斗效果"
+            );
+        }
+        if (playerInventory == null ||
+            playerInventory.GetCount(definition) <= 0)
+        {
+            return ItemResult(
+                BattleItemUseStatus.NotOwned,
+                "背包中没有这个道具"
+            );
+        }
+
+        switch (definition.EffectType)
+        {
+            case CollectibleEffectType.RestoreNumber:
+                if (numberResource == null ||
+                    numberResource.CurrentValue >= numberResource.MaximumValue)
+                {
+                    return ItemResult(
+                        BattleItemUseStatus.NumberAlreadyFull,
+                        "数字已满，暂时无法使用"
+                    );
+                }
+                break;
+
+            case CollectibleEffectType.NegateNextAttack:
+                if (playerRunStats == null || playerRunStats.NegateNextAttack)
+                {
+                    return ItemResult(
+                        BattleItemUseStatus.AlreadyActive,
+                        "少女的心事已经在保护你"
+                    );
+                }
+                break;
+
+            case CollectibleEffectType.NextEnemyPhaseShield:
+                if (playerRunStats == null ||
+                    playerRunStats.NextEnemyPhaseShield > 0)
+                {
+                    return ItemResult(
+                        BattleItemUseStatus.AlreadyActive,
+                        "本回合的护盾已经生效"
+                    );
+                }
+                break;
+        }
+
+        return ItemResult(BattleItemUseStatus.Success, string.Empty);
+    }
+
+    private BattleItemUseResult TryUseBattleItem(
+        CollectibleDefinition definition
+    )
+    {
+        BattleItemUseResult validation = ValidateBattleItem(definition);
+        if (!validation.Succeeded)
+        {
+            return validation;
+        }
+        if (!playerInventory.TryConsume(definition))
+        {
+            return ItemResult(
+                BattleItemUseStatus.NotOwned,
+                "道具数量发生变化，请重新选择"
+            );
+        }
+
+        int value = Mathf.Max(0, Mathf.RoundToInt(definition.EffectValue));
+        switch (definition.EffectType)
+        {
+            case CollectibleEffectType.RestoreNumber:
+                numberResource.Add(
+                    value,
+                    NumberChangeReason.Item,
+                    transform.position
+                );
+                break;
+
+            case CollectibleEffectType.TimedAttackBonus:
+                playerRunStats.AddTimedAttackBonus(
+                    value,
+                    Mathf.Max(1, definition.EffectDuration)
+                );
+                break;
+
+            case CollectibleEffectType.NegateNextAttack:
+                playerRunStats.TryActivateNegateNextAttack();
+                break;
+
+            case CollectibleEffectType.NextEnemyPhaseShield:
+                playerRunStats.TryActivateShield(value);
+                break;
+        }
+
+        ScheduleAutoPassIfNecessary();
+        return ItemResult(
+            BattleItemUseStatus.Success,
+            $"{definition.DisplayName}已使用"
+        );
+    }
+
+    private void ScheduleAutoPassIfNecessary()
+    {
+        if (Phase != EncounterPhase.PlayerTurn ||
+            enemyTurnRoutine != null ||
+            (numberResource != null &&
+             numberResource.CanSpend(basicAttackCost)) ||
+            CanStruggleNow() ||
+            HasUsableBattleItem())
+        {
+            return;
+        }
+
+        enemyTurnRoutine = StartCoroutine(AutoPassPlayerTurn());
+    }
+
+    private static BattleItemUseResult ItemResult(
+        BattleItemUseStatus status,
+        string message
+    ) => new(status, message);
 
     private void HandleNumberChanged(NumberChange change)
     {

@@ -15,11 +15,18 @@ public class GameHUDPanel : UIPanel
     [Header("Controls")]
     [SerializeField] private Button settingsButton;
 
+    [Header("Inventory display")]
+    [SerializeField] private Image[] itemIcons = new Image[4];
+    [SerializeField] private TMP_Text[] itemCounts = new TMP_Text[4];
+    [SerializeField] private Image[] relicIcons = new Image[3];
+    [SerializeField] private TMP_Text[] relicCounts = new TMP_Text[3];
+
     private readonly Queue<NumberDeltaPopup> popupPool = new();
     private readonly Queue<NumberChange> pendingChanges = new();
     private readonly List<NumberDeltaPopup> activePopups = new();
     private NumberDeltaPopup activePopup;
     private NumberResource numberResource;
+    private PlayerInventory playerInventory;
     private Canvas parentCanvas;
 
     public event Action SettingsRequested;
@@ -38,11 +45,17 @@ public class GameHUDPanel : UIPanel
     public override void OnOpen(object data = null)
     {
         BindNumberResource(NumberResource.Instance);
+        BindInventory(
+            NumberResource.Instance != null
+                ? NumberResource.Instance.GetComponent<PlayerInventory>()
+                : null
+        );
     }
 
     public override void OnClose()
     {
         BindNumberResource(null);
+        BindInventory(null);
         RecycleAllPopups();
     }
 
@@ -50,6 +63,7 @@ public class GameHUDPanel : UIPanel
     {
         settingsButton?.onClick.RemoveListener(HandleSettingsClicked);
         BindNumberResource(null);
+        BindInventory(null);
     }
 
     private void BindNumberResource(NumberResource resource)
@@ -75,6 +89,71 @@ public class GameHUDPanel : UIPanel
         if (change.Delta != 0)
         {
             ShowDelta(change);
+        }
+    }
+
+    private void BindInventory(PlayerInventory inventory)
+    {
+        if (playerInventory != null)
+        {
+            playerInventory.Changed -= RefreshInventory;
+        }
+
+        playerInventory = inventory;
+        if (playerInventory != null)
+        {
+            playerInventory.Changed += RefreshInventory;
+        }
+        RefreshInventory();
+    }
+
+    private void RefreshInventory()
+    {
+        List<CollectibleStack> items =
+            playerInventory?.GetOrderedItemStacks() ?? new List<CollectibleStack>();
+        List<CollectibleStack> relics = new();
+        if (playerInventory != null)
+        {
+            foreach (CollectibleStack stack in playerInventory.Stacks)
+            {
+                if (stack?.Definition != null &&
+                    stack.Definition.Kind == CollectibleKind.Relic)
+                {
+                    relics.Add(stack);
+                }
+            }
+            relics.Sort((left, right) =>
+                left.Definition.InventoryOrder.CompareTo(
+                    right.Definition.InventoryOrder
+                ));
+        }
+
+        RefreshSlots(itemIcons, itemCounts, items);
+        RefreshSlots(relicIcons, relicCounts, relics);
+    }
+
+    private static void RefreshSlots(
+        Image[] icons,
+        TMP_Text[] counts,
+        IReadOnlyList<CollectibleStack> stacks
+    )
+    {
+        for (int i = 0; i < icons.Length; i++)
+        {
+            CollectibleStack stack = i < stacks.Count ? stacks[i] : null;
+            CollectibleDefinition definition = stack?.Definition;
+            if (icons[i] != null)
+            {
+                icons[i].sprite = definition?.Icon;
+                icons[i].enabled = definition?.Icon != null;
+            }
+            if (counts.Length > i && counts[i] != null)
+            {
+                counts[i].text =
+                    stack != null && stack.Count > 1
+                        ? $"x{stack.Count}"
+                        : string.Empty;
+            }
         }
     }
 

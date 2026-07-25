@@ -946,9 +946,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 93ba5789df174ff29904fb6269924d3f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  initialValue: 10
+  initialValue: 60
   minimumValue: -1
-  maximumValue: 199
+  maximumValue: 100
 --- !u!114 &1104470235
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1004,8 +1004,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: e686c94e26d544a888acd459c0a03cfe, type: 3}
-  m_Name:
-  m_EditorClassIdentifier:
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!1 &1289600408
 GameObject:
   m_ObjectHideFlags: 0
