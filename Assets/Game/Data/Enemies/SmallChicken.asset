@@ -19,6 +19,7 @@ MonoBehaviour:
   canRollHP: 1
   fixedHP: 11
   rewardNumber: 12
+  rewardMode: 1
   attackDamage: 2
   specialDamage: 3
   behaviorType: 0

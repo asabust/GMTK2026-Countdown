@@ -1,0 +1,41 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 72ff22544e534d97b3598dc54fd2029d, type: 3}
+  m_Name: HorrorBox
+  m_EditorClassIdentifier:
+  enemyId: HorrorBox
+  displayName: "\u60CA\u9B42\u5323"
+  minHP: 4
+  maxHP: 8
+  canRollHP: 1
+  fixedHP: 7
+  rewardNumber: 0
+  rewardMode: 2
+  attackDamage: 0
+  specialDamage: 0
+  behaviorType: 2
+  intentSequence:
+  - 0
+  raiderNextAttackBonus: 1
+  raiderSelfDamage: 2
+  raiderStrengthenWeight: 1
+  raiderSelfDamageWeight: 1
+  raiderStunnedWeight: 1
+  hamsterStealAmount: 3
+  healthRewardMultiplier: 0.5
+  horrorExplosionMultiplier: 0.8
+  itemDropTable:
+  - {fileID: 11400000, guid: 47840a1cb68e44f43b0c652588562525, type: 2}
+  - {fileID: 11400000, guid: 3b94c1836fa4e491c8afaddd5386dda9, type: 2}
+  - {fileID: 11400000, guid: 4485c9127cf5145298783680f7f8abca, type: 2}
+  - {fileID: 11400000, guid: aaa2510ef20454769b4c818cdaf1afaa, type: 2}
+  itemDropCount: 1

@@ -40,6 +40,7 @@ public class EncounterController : MonoBehaviour
     private Vector3 rewardWorldPosition;
     private int currentBattleLoot;
     private bool hasUsedStruggle;
+    private int battleRound;
 
     public EncounterPhase Phase { get; private set; } = EncounterPhase.Exploration;
     public EnemyActor CurrentEnemy { get; private set; }
@@ -68,6 +69,7 @@ public class EncounterController : MonoBehaviour
         lockedRewardResult = default;
         currentBattleLoot = 0;
         hasUsedStruggle = false;
+        battleRound = 0;
         battleStatusWorldUI?.SetCombatVisible(false);
 
         UIManager.Instance?.Close<PreBattleRollPanel>();
@@ -152,6 +154,7 @@ public class EncounterController : MonoBehaviour
 
         CurrentEnemy = enemy;
         hasUsedStruggle = false;
+        battleRound = 0;
         battleStatusWorldUI?.SetCombatVisible(true);
         CurrentEnemy.FacePlayer(playerController.GridPosition);
         EncounterStarted?.Invoke(enemy);
@@ -203,7 +206,7 @@ public class EncounterController : MonoBehaviour
             isTrackingNumberLoss = true;
         }
 
-        CurrentEnemy.ShowCombatInformation();
+        CurrentEnemy.ShowCombatInformation(battleRound + 1);
         if (!CurrentEnemy.HasLockedIntent)
         {
             CurrentEnemy.LockFirstIntent();
@@ -270,11 +273,13 @@ public class EncounterController : MonoBehaviour
         }
 
         SetPhase(EncounterPhase.ResolvingPlayerAction);
+        battleRound++;
+        CurrentEnemy.ShowCombatInformation(battleRound);
         bool defeated = CurrentEnemy.ApplyDamage(CurrentBasicAttackDamage);
         playerRunStats?.CompletePlayerAction();
         if (defeated)
         {
-            ResolveEnemyDefeated();
+            ResolveDefeatedEnemy();
         }
         else
         {
@@ -298,11 +303,13 @@ public class EncounterController : MonoBehaviour
 
         hasUsedStruggle = true;
         SetPhase(EncounterPhase.ResolvingPlayerAction);
+        battleRound++;
+        CurrentEnemy.ShowCombatInformation(battleRound);
         bool defeated = CurrentEnemy.ApplyDamage(struggleDamage);
         playerRunStats?.CompletePlayerAction();
         if (defeated)
         {
-            ResolveEnemyDefeated();
+            ResolveDefeatedEnemy();
         }
         else
         {
@@ -344,14 +351,29 @@ public class EncounterController : MonoBehaviour
         SetPhase(EncounterPhase.EnemyTurn);
 
         EnemyActor actingEnemy = CurrentEnemy;
-        int damage = actingEnemy.GetCurrentIntentDamage();
         SetPhase(EncounterPhase.ResolvingEnemyAction);
         actingEnemy.PlayCurrentIntentAnimation();
+        EnemyIntentResolution intentResolution =
+            actingEnemy.ResolveLockedIntent();
+
+        int stolenNumber = numberResource.TakeUpTo(
+            intentResolution.NumberToSteal,
+            NumberChangeReason.Stolen,
+            transform.position
+        );
+        actingEnemy.RecordStolenNumber(stolenNumber);
 
         IncomingAttackResolution attackResolution =
             playerRunStats != null
-                ? playerRunStats.ResolveIncomingAttack(damage)
-                : new IncomingAttackResolution(damage, 0, false, damage);
+                ? playerRunStats.ResolveIncomingAttack(
+                    intentResolution.DamageToPlayer
+                )
+                : new IncomingAttackResolution(
+                    intentResolution.DamageToPlayer,
+                    0,
+                    false,
+                    intentResolution.DamageToPlayer
+                );
         if (attackResolution.FinalDamage > 0)
         {
             numberResource.TakeDamage(
@@ -359,6 +381,16 @@ public class EncounterController : MonoBehaviour
                 transform.position
             );
         }
+
+        bool enemyDefeatedBySelfDamage =
+            intentResolution.SelfDamage > 0 &&
+            actingEnemy.ApplyDamage(intentResolution.SelfDamage);
+        string resolutionDescription =
+            intentResolution.NumberToSteal > 0 &&
+            stolenNumber != intentResolution.NumberToSteal
+                ? $"{intentResolution.Description}（实际偷取 {stolenNumber}）"
+                : intentResolution.Description;
+        actingEnemy.ShowIntentResolution(resolutionDescription);
 
         float presentationDuration = Mathf.Max(
             enemyActionDuration,
@@ -376,6 +408,18 @@ public class EncounterController : MonoBehaviour
         if (numberResource.CurrentValue <= numberResource.MinimumValue)
         {
             HandlePlayerDefeated();
+            yield break;
+        }
+
+        if (enemyDefeatedBySelfDamage)
+        {
+            ResolveEnemyDefeated();
+            yield break;
+        }
+
+        if (intentResolution.Escapes)
+        {
+            ResolveEnemyEscaped(actingEnemy);
             yield break;
         }
 
@@ -398,14 +442,91 @@ public class EncounterController : MonoBehaviour
         GameManager.Instance?.GameOver("数字跌破 0");
     }
 
+    private void ResolveDefeatedEnemy()
+    {
+        if (CurrentEnemy?.Definition?.BehaviorType ==
+            EnemyBehaviorType.HorrorBox)
+        {
+            UIManager.Instance?.Close<BattleActionPanel>();
+            playerController.SetExternalInputLocked(true);
+            enemyTurnRoutine = StartCoroutine(ResolveHorrorBoxExplosion());
+            return;
+        }
+
+        ResolveEnemyDefeated();
+    }
+
+    private IEnumerator ResolveHorrorBoxExplosion()
+    {
+        EnemyActor actingEnemy = CurrentEnemy;
+        if (actingEnemy == null)
+        {
+            enemyTurnRoutine = null;
+            yield break;
+        }
+
+        int explosionDamage =
+            actingEnemy.Definition.CalculateHorrorExplosionDamage(
+                actingEnemy.ResolvedMaxHP
+            );
+        actingEnemy.PlaySpecialAnimation();
+        actingEnemy.ShowIntentResolution($"负荷爆炸：-{explosionDamage}");
+
+        IncomingAttackResolution attackResolution =
+            playerRunStats != null
+                ? playerRunStats.ResolveIncomingAttack(explosionDamage)
+                : new IncomingAttackResolution(
+                    explosionDamage,
+                    0,
+                    false,
+                    explosionDamage
+                );
+        if (attackResolution.FinalDamage > 0)
+        {
+            numberResource.TakeDamage(
+                attackResolution.FinalDamage,
+                actingEnemy.transform.position
+            );
+        }
+
+        float presentationDuration = Mathf.Max(
+            enemyActionDuration,
+            actingEnemy.GetSpecialAnimationDuration()
+        );
+        if (presentationDuration > 0f)
+        {
+            yield return new WaitForSeconds(presentationDuration);
+        }
+
+        playerRunStats?.CompleteEnemyPhase();
+        enemyTurnRoutine = null;
+        if (numberResource.CurrentValue <= numberResource.MinimumValue)
+        {
+            HandlePlayerDefeated();
+            yield break;
+        }
+
+        ResolveEnemyDefeated();
+    }
+
     private void ResolveEnemyDefeated()
     {
         EnemyActor defeatedEnemy = CurrentEnemy;
-        int baseReward = defeatedEnemy.Definition.RewardNumber;
-        int battleLoot = Mathf.Max(
-            0,
-            baseReward - accumulatedNumberLoss
+        int resolvedRound = Mathf.Max(1, battleRound);
+        int battleLoot = defeatedEnemy.Definition.CalculateNumberReward(
+            defeatedEnemy.ResolvedMaxHP,
+            resolvedRound,
+            accumulatedNumberLoss
         );
+        if (defeatedEnemy.StolenNumberEscrow > 0)
+        {
+            numberResource.Add(
+                defeatedEnemy.StolenNumberEscrow,
+                NumberChangeReason.StolenReturn,
+                defeatedEnemy.transform.position
+            );
+        }
+        string itemDropSummary = ResolveItemDrops(defeatedEnemy.Definition);
 
         SetPhase(EncounterPhase.Reward);
         isTrackingNumberLoss = false;
@@ -427,9 +548,11 @@ public class EncounterController : MonoBehaviour
 
         BattleRewardPanel panel = UIManager.Instance?.Open<BattleRewardPanel>(
             new BattleRewardRequest(
-                baseReward,
-                accumulatedNumberLoss,
+                defeatedEnemy.ResolvedMaxHP,
+                resolvedRound,
+                defeatedEnemy.Definition.RewardMode,
                 battleLoot,
+                itemDropSummary,
                 GetEffectiveGreedySuccessChance(),
                 GetEffectiveGreedyMultiplier(),
                 ResolveRewardChoice,
@@ -441,6 +564,42 @@ public class EncounterController : MonoBehaviour
             lockedRewardResult = ResolveRewardChoice(BattleRewardChoice.Safe);
             CompleteReward();
         }
+    }
+
+    private string ResolveItemDrops(EnemyDefinition definition)
+    {
+        if (definition == null || definition.ItemDropCount <= 0)
+        {
+            return string.Empty;
+        }
+
+        System.Collections.Generic.List<string> results = new();
+        for (int i = 0; i < definition.ItemDropCount; i++)
+        {
+            CollectibleDefinition drop = definition.RollItemDrop();
+            if (drop == null)
+            {
+                continue;
+            }
+
+            InventoryAddResult result = playerInventory != null
+                ? playerInventory.TryAdd(drop)
+                : InventoryAddResult.InvalidDefinition;
+            string resultText = result switch
+            {
+                InventoryAddResult.Success => $"获得 {drop.DisplayName}",
+                InventoryAddResult.ItemSlotsFull =>
+                    $"{drop.DisplayName}：道具栏已满，未获得",
+                InventoryAddResult.MaximumStacksReached =>
+                    $"{drop.DisplayName}：已达持有上限，未获得",
+                _ => $"{drop.DisplayName}：未获得"
+            };
+            results.Add(resultText);
+        }
+
+        return results.Count > 0
+            ? $"道具：{string.Join("；", results)}"
+            : string.Empty;
     }
 
     private BattleRewardResult ResolveRewardChoice(BattleRewardChoice choice)
@@ -489,6 +648,26 @@ public class EncounterController : MonoBehaviour
         lockedRewardResult = default;
         currentBattleLoot = 0;
         hasUsedStruggle = false;
+        battleRound = 0;
+        SetPhase(EncounterPhase.Exploration);
+    }
+
+    private void ResolveEnemyEscaped(EnemyActor escapedEnemy)
+    {
+        isTrackingNumberLoss = false;
+        UIManager.Instance?.Close<BattleActionPanel>();
+        playerController.SetExternalInputLocked(false);
+        battleStatusWorldUI?.SetCombatVisible(false);
+        escapedEnemy.WorldUI?.HideIntent();
+        CurrentEnemy = null;
+        escapedEnemy.ReleaseAndDestroy();
+        playerController.CompleteContact();
+        accumulatedNumberLoss = 0;
+        rewardChoiceResolved = false;
+        lockedRewardResult = default;
+        currentBattleLoot = 0;
+        hasUsedStruggle = false;
+        battleRound = 0;
         SetPhase(EncounterPhase.Exploration);
     }
 
@@ -700,7 +879,9 @@ public class EncounterController : MonoBehaviour
 
     private void HandleNumberChanged(NumberChange change)
     {
-        if (!isTrackingNumberLoss || change.Delta >= 0)
+        if (!isTrackingNumberLoss ||
+            change.Delta >= 0 ||
+            change.Reason == NumberChangeReason.Stolen)
         {
             return;
         }

@@ -35,6 +35,7 @@ public enum InventoryAddResult
 [DisallowMultipleComponent]
 public sealed class PlayerInventory : MonoBehaviour
 {
+    [SerializeField] private bool limitItemSlots;
     [SerializeField, Min(1)] private int itemSlotCapacity = 4;
     [SerializeField] private List<CollectibleStack> stacks = new();
 
@@ -60,7 +61,8 @@ public sealed class PlayerInventory : MonoBehaviour
                 : InventoryAddResult.MaximumStacksReached;
         }
 
-        return definition.Kind == CollectibleKind.Item &&
+        return limitItemSlots &&
+               definition.Kind == CollectibleKind.Item &&
                UsedItemSlots >= itemSlotCapacity
             ? InventoryAddResult.ItemSlotsFull
             : InventoryAddResult.Success;

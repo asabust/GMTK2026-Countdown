@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 public enum EnemyBehaviorType
@@ -13,7 +14,22 @@ public enum EnemyIntentType
 {
     Wait,
     Attack,
-    Special
+    Special,
+    Steal
+}
+
+public enum EnemyRewardMode
+{
+    FixedDeductBattleLoss,
+    TurnScaled,
+    HealthScaled
+}
+
+public enum DrunkenRaiderDrinkOutcome
+{
+    Strengthen,
+    SelfDamage,
+    Stunned
 }
 
 [CreateAssetMenu(
@@ -29,10 +45,25 @@ public class EnemyDefinition : ScriptableObject
     [SerializeField] private bool canRollHP = true;
     [SerializeField, Min(1)] private int fixedHP = 1;
     [SerializeField, Min(0)] private int rewardNumber;
+    [SerializeField] private EnemyRewardMode rewardMode;
     [SerializeField, Min(0)] private int attackDamage;
     [SerializeField, Min(0)] private int specialDamage;
     [SerializeField] private EnemyBehaviorType behaviorType;
     [SerializeField] private EnemyIntentType[] intentSequence;
+    [Header("Drunken Raider")]
+    [SerializeField, Min(0)] private int raiderNextAttackBonus = 1;
+    [SerializeField, Min(0)] private int raiderSelfDamage = 2;
+    [SerializeField, Min(0)] private int raiderStrengthenWeight = 1;
+    [SerializeField, Min(0)] private int raiderSelfDamageWeight = 1;
+    [SerializeField, Min(0)] private int raiderStunnedWeight = 1;
+    [Header("Hamster")]
+    [SerializeField, Min(0)] private int hamsterStealAmount = 3;
+    [Header("Health Scaled Reward")]
+    [SerializeField, Min(0f)] private float healthRewardMultiplier = 0.5f;
+    [Header("Horror Box")]
+    [SerializeField, Min(0f)] private float horrorExplosionMultiplier = 0.8f;
+    [SerializeField] private CollectibleDefinition[] itemDropTable;
+    [SerializeField, Min(0)] private int itemDropCount = 1;
 
     public string EnemyId => enemyId;
     public string DisplayName => displayName;
@@ -41,14 +72,114 @@ public class EnemyDefinition : ScriptableObject
     public bool CanRollHP => canRollHP;
     public int FixedHP => fixedHP;
     public int RewardNumber => rewardNumber;
+    public EnemyRewardMode RewardMode => rewardMode;
     public int AttackDamage => attackDamage;
     public int SpecialDamage => specialDamage;
     public EnemyBehaviorType BehaviorType => behaviorType;
     public EnemyIntentType[] IntentSequence => intentSequence;
+    public int RaiderNextAttackBonus => raiderNextAttackBonus;
+    public int RaiderSelfDamage => raiderSelfDamage;
+    public int HamsterStealAmount => hamsterStealAmount;
+    public float HealthRewardMultiplier => healthRewardMultiplier;
+    public float HorrorExplosionMultiplier => horrorExplosionMultiplier;
+    public int ItemDropCount => itemDropCount;
 
     public int StableHP => canRollHP
         ? Mathf.Min(maxHP, Mathf.FloorToInt((minHP + maxHP) * 0.5f) + 1)
         : fixedHP;
+
+    public string RewardPreview => rewardMode switch
+    {
+        EnemyRewardMode.TurnScaled => "生命×80%～45%",
+        EnemyRewardMode.HealthScaled =>
+            $"生命×{Mathf.RoundToInt(healthRewardMultiplier * 100f)}%" +
+            (itemDropCount > 0 ? $" + 道具×{itemDropCount}" : string.Empty),
+        _ => rewardNumber.ToString()
+    };
+
+    public int CalculateNumberReward(
+        int resolvedMaxHP,
+        int battleRound,
+        int accumulatedBattleLoss
+    )
+    {
+        if (rewardMode == EnemyRewardMode.HealthScaled)
+        {
+            return Mathf.CeilToInt(
+                Mathf.Max(0, resolvedMaxHP) * healthRewardMultiplier
+            );
+        }
+
+        if (rewardMode == EnemyRewardMode.FixedDeductBattleLoss)
+        {
+            return Mathf.Max(0, rewardNumber - accumulatedBattleLoss);
+        }
+
+        float multiplier = GetTurnRewardMultiplier(battleRound);
+        return Mathf.CeilToInt(Mathf.Max(0, resolvedMaxHP) * multiplier);
+    }
+
+    public static float GetTurnRewardMultiplier(int battleRound)
+    {
+        return Mathf.Max(1, battleRound) switch
+        {
+            1 => 0.8f,
+            2 => 0.7f,
+            3 => 0.6f,
+            4 => 0.5f,
+            _ => 0.45f
+        };
+    }
+
+    public int CalculateHorrorExplosionDamage(int resolvedMaxHP) =>
+        Mathf.CeilToInt(
+            Mathf.Max(0, resolvedMaxHP) * horrorExplosionMultiplier
+        );
+
+    public CollectibleDefinition RollItemDrop()
+    {
+        if (itemDropTable == null || itemDropTable.Length == 0)
+        {
+            return null;
+        }
+
+        List<CollectibleDefinition> validDrops = new();
+        foreach (CollectibleDefinition collectible in itemDropTable)
+        {
+            if (collectible != null &&
+                collectible.Kind == CollectibleKind.Item)
+            {
+                validDrops.Add(collectible);
+            }
+        }
+
+        return validDrops.Count == 0
+            ? null
+            : validDrops[GameRandom.RangeInclusive(0, validDrops.Count - 1)];
+    }
+
+    public DrunkenRaiderDrinkOutcome RollDrunkenRaiderDrinkOutcome()
+    {
+        int totalWeight =
+            raiderStrengthenWeight +
+            raiderSelfDamageWeight +
+            raiderStunnedWeight;
+        if (totalWeight <= 0)
+        {
+            return DrunkenRaiderDrinkOutcome.Stunned;
+        }
+
+        int roll = GameRandom.RangeInclusive(1, totalWeight);
+        if (roll <= raiderStrengthenWeight)
+        {
+            return DrunkenRaiderDrinkOutcome.Strengthen;
+        }
+
+        roll -= raiderStrengthenWeight;
+        return roll <= raiderSelfDamageWeight
+            ? DrunkenRaiderDrinkOutcome.SelfDamage
+            : DrunkenRaiderDrinkOutcome.Stunned;
+    }
 
     private void OnValidate()
     {
@@ -58,5 +189,14 @@ public class EnemyDefinition : ScriptableObject
         rewardNumber = Mathf.Max(0, rewardNumber);
         attackDamage = Mathf.Max(0, attackDamage);
         specialDamage = Mathf.Max(0, specialDamage);
+        raiderNextAttackBonus = Mathf.Max(0, raiderNextAttackBonus);
+        raiderSelfDamage = Mathf.Max(0, raiderSelfDamage);
+        raiderStrengthenWeight = Mathf.Max(0, raiderStrengthenWeight);
+        raiderSelfDamageWeight = Mathf.Max(0, raiderSelfDamageWeight);
+        raiderStunnedWeight = Mathf.Max(0, raiderStunnedWeight);
+        hamsterStealAmount = Mathf.Max(0, hamsterStealAmount);
+        healthRewardMultiplier = Mathf.Max(0f, healthRewardMultiplier);
+        horrorExplosionMultiplier = Mathf.Max(0f, horrorExplosionMultiplier);
+        itemDropCount = Mathf.Max(0, itemDropCount);
     }
 }

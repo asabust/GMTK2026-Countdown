@@ -31,27 +31,33 @@ public readonly struct BattleRewardResult
 public sealed class BattleRewardRequest
 {
     public BattleRewardRequest(
-        int baseReward,
-        int accumulatedLoss,
+        int resolvedMaxHP,
+        int battleRound,
+        EnemyRewardMode rewardMode,
         int battleLoot,
+        string itemDropSummary,
         float greedySuccessChance,
         float greedyMultiplier,
         Func<BattleRewardChoice, BattleRewardResult> resolve,
         Action completed
     )
     {
-        BaseReward = baseReward;
-        AccumulatedLoss = accumulatedLoss;
+        ResolvedMaxHP = resolvedMaxHP;
+        BattleRound = battleRound;
+        RewardMode = rewardMode;
         BattleLoot = battleLoot;
+        ItemDropSummary = itemDropSummary;
         GreedySuccessChance = greedySuccessChance;
         GreedyMultiplier = greedyMultiplier;
         Resolve = resolve;
         Completed = completed;
     }
 
-    public int BaseReward { get; }
-    public int AccumulatedLoss { get; }
+    public int ResolvedMaxHP { get; }
+    public int BattleRound { get; }
+    public EnemyRewardMode RewardMode { get; }
     public int BattleLoot { get; }
+    public string ItemDropSummary { get; }
     public float GreedySuccessChance { get; }
     public float GreedyMultiplier { get; }
     public Func<BattleRewardChoice, BattleRewardResult> Resolve { get; }
@@ -97,15 +103,29 @@ public class BattleRewardPanel : UIPanel
             request.GreedySuccessChance * 100f
         );
 
-        summaryText.text =
-            $"基础掉落：{request.BaseReward}\n" +
-            $"本场损失：-{request.AccumulatedLoss}\n" +
-            $"本场数字：{request.BattleLoot}";
+        string numberSummary = request.RewardMode switch
+        {
+            EnemyRewardMode.TurnScaled =>
+                $"锁定生命：{request.ResolvedMaxHP}\n" +
+                $"击杀回合：{request.BattleRound}\n" +
+                $"掉落倍率：{Mathf.RoundToInt(EnemyDefinition.GetTurnRewardMultiplier(request.BattleRound) * 100f)}%\n" +
+                $"本场数字：{request.BattleLoot}",
+            EnemyRewardMode.HealthScaled =>
+                $"锁定生命：{request.ResolvedMaxHP}\n" +
+                $"生命掉落：50%\n" +
+                $"本场数字：{request.BattleLoot}",
+            _ => $"本场数字：{request.BattleLoot}"
+        };
+        summaryText.text = string.IsNullOrWhiteSpace(request.ItemDropSummary)
+            ? numberSummary
+            : $"{numberSummary}\n{request.ItemDropSummary}";
         safeText.text = $"获得 {request.BattleLoot}（100%）";
         greedyText.text =
             $"{successPercent}% 获得 {greedyGain}\n" +
             $"{100 - successPercent}% 获得 0";
-        resultText.text = "道具不会因贪婪失败而丢失";
+        resultText.text = string.IsNullOrWhiteSpace(request.ItemDropSummary)
+            ? "道具不会因贪婪失败而丢失"
+            : $"{request.ItemDropSummary}\n道具不会因贪婪失败而丢失";
     }
 
     public override void OnClose()

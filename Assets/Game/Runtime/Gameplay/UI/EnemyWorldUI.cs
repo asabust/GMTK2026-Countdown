@@ -10,18 +10,22 @@ public class EnemyWorldUI : MonoBehaviour
     [SerializeField] private GameObject intentRoot;
     [SerializeField] private TMP_Text intentText;
 
-    public void ShowExploration(int rewardNumber)
+    public void ShowExploration(string rewardDescription)
     {
         rewardRoot?.SetActive(true);
         healthRoot?.SetActive(false);
         intentRoot?.SetActive(false);
         if (rewardText != null)
         {
-            rewardText.text = $"掉落 {rewardNumber}";
+            rewardText.text = $"掉落 {rewardDescription}";
         }
     }
 
-    public void ShowCombat(int currentHP, int maxHP, int rewardNumber)
+    public void ShowCombat(
+        int currentHP,
+        int maxHP,
+        string rewardDescription
+    )
     {
         rewardRoot?.SetActive(true);
         healthRoot?.SetActive(true);
@@ -29,7 +33,7 @@ public class EnemyWorldUI : MonoBehaviour
 
         if (rewardText != null)
         {
-            rewardText.text = $"掉落 {rewardNumber}";
+            rewardText.text = $"掉落 {rewardDescription}";
         }
 
         if (healthText != null)

@@ -47,7 +47,7 @@ public class PreBattleRollPanel : UIPanel
 
         enemyNameText.text = definition.DisplayName;
         healthRangeText.text = $"生命范围：{definition.MinHP}～{definition.MaxHP}";
-        rewardText.text = $"基础掉落：{definition.RewardNumber}";
+        rewardText.text = $"掉落：{definition.RewardPreview}";
         stableHealthText.text = $"不 ROLL：生命 {definition.StableHP}";
         SetButtonsInteractable(true);
     }

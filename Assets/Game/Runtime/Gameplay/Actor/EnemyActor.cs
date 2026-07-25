@@ -1,6 +1,30 @@
 using System;
 using UnityEngine;
 
+public readonly struct EnemyIntentResolution
+{
+    public EnemyIntentResolution(
+        int damageToPlayer,
+        int selfDamage,
+        string description,
+        int numberToSteal = 0,
+        bool escapes = false
+    )
+    {
+        DamageToPlayer = damageToPlayer;
+        SelfDamage = selfDamage;
+        Description = description;
+        NumberToSteal = numberToSteal;
+        Escapes = escapes;
+    }
+
+    public int DamageToPlayer { get; }
+    public int SelfDamage { get; }
+    public string Description { get; }
+    public int NumberToSteal { get; }
+    public bool Escapes { get; }
+}
+
 [RequireComponent(typeof(GridObject))]
 public class EnemyActor : MonoBehaviour, IFogVisibilityResponder
 {
@@ -17,6 +41,8 @@ public class EnemyActor : MonoBehaviour, IFogVisibilityResponder
     private SpriteRenderer characterSpriteRenderer;
     private FogVisibilityTarget fogVisibilityTarget;
     private int intentIndex = -1;
+    private int projectedRewardRound = 1;
+    private int nextAttackBonus;
     private CellVisibility fogVisibility = CellVisibility.Unexplored;
     private bool showingCombatInformation;
 
@@ -27,6 +53,8 @@ public class EnemyActor : MonoBehaviour, IFogVisibilityResponder
     public EnemyWorldUI WorldUI => worldUI;
     public EnemyIntentType CurrentIntent { get; private set; }
     public bool HasLockedIntent { get; private set; }
+    public int NextAttackBonus => nextAttackBonus;
+    public int StolenNumberEscrow { get; private set; }
 
     public event Action HealthResolved;
     public event Action HealthChanged;
@@ -101,8 +129,11 @@ public class EnemyActor : MonoBehaviour, IFogVisibilityResponder
 
         return CurrentIntent switch
         {
-            EnemyIntentType.Attack => definition.AttackDamage,
-            EnemyIntentType.Special => definition.SpecialDamage,
+            EnemyIntentType.Attack =>
+                definition.AttackDamage + nextAttackBonus,
+            EnemyIntentType.Special
+                when definition.BehaviorType == EnemyBehaviorType.SmallChicken =>
+                definition.SpecialDamage,
             _ => 0
         };
     }
@@ -116,7 +147,17 @@ public class EnemyActor : MonoBehaviour, IFogVisibilityResponder
 
         EnsureWorldUI();
         int damage = GetCurrentIntentDamage();
-        string description = CurrentIntent switch
+        string description = definition != null &&
+                             definition.BehaviorType ==
+                             EnemyBehaviorType.DrunkenRaider &&
+                             CurrentIntent == EnemyIntentType.Special
+            ? "意图：喝酒（结果未知）"
+            : definition != null &&
+              definition.BehaviorType == EnemyBehaviorType.Hamster
+                ? CurrentIntent == EnemyIntentType.Special
+                    ? $"意图：携带 {StolenNumberEscrow} 点逃跑"
+                    : $"意图：偷取 {definition.HamsterStealAmount}"
+                : CurrentIntent switch
         {
             EnemyIntentType.Attack => $"意图：攻击 -{damage}",
             EnemyIntentType.Special => $"意图：啄地 -{damage}",
@@ -125,11 +166,51 @@ public class EnemyActor : MonoBehaviour, IFogVisibilityResponder
         worldUI?.ShowIntent(description);
     }
 
+    public EnemyIntentResolution ResolveLockedIntent()
+    {
+        if (definition == null || !HasLockedIntent)
+        {
+            return new EnemyIntentResolution(0, 0, "等待");
+        }
+
+        if (definition.BehaviorType == EnemyBehaviorType.DrunkenRaider)
+        {
+            return ResolveDrunkenRaiderIntent();
+        }
+
+        if (definition.BehaviorType == EnemyBehaviorType.Hamster)
+        {
+            return ResolveHamsterIntent();
+        }
+
+        int damage = GetCurrentIntentDamage();
+        string description = CurrentIntent switch
+        {
+            EnemyIntentType.Attack => $"攻击：-{damage}",
+            EnemyIntentType.Special => $"啄地：-{damage}",
+            _ => "等待"
+        };
+        return new EnemyIntentResolution(damage, 0, description);
+    }
+
+    public void ShowIntentResolution(string description)
+    {
+        if (fogVisibility != CellVisibility.Visible ||
+            string.IsNullOrWhiteSpace(description))
+        {
+            return;
+        }
+
+        EnsureWorldUI();
+        worldUI?.ShowIntent(description);
+    }
+
     public void PlayCurrentIntentAnimation()
     {
         string stateName = CurrentIntent switch
         {
             EnemyIntentType.Attack => attackAnimationState,
+            EnemyIntentType.Steal => attackAnimationState,
             EnemyIntentType.Special => specialAnimationState,
             _ => idleAnimationState
         };
@@ -141,15 +222,31 @@ public class EnemyActor : MonoBehaviour, IFogVisibilityResponder
         PlayAnimation(idleAnimationState);
     }
 
+    public void PlaySpecialAnimation()
+    {
+        PlayAnimation(specialAnimationState);
+    }
+
+    public float GetSpecialAnimationDuration()
+    {
+        return GetAnimationDuration(specialAnimationState);
+    }
+
     public float GetCurrentIntentAnimationDuration()
     {
         string stateName = CurrentIntent switch
         {
             EnemyIntentType.Attack => attackAnimationState,
+            EnemyIntentType.Steal => attackAnimationState,
             EnemyIntentType.Special => specialAnimationState,
             _ => idleAnimationState
         };
 
+        return GetAnimationDuration(stateName);
+    }
+
+    private float GetAnimationDuration(string stateName)
+    {
         if (characterAnimator == null)
         {
             characterAnimator = GetComponentInChildren<Animator>(true);
@@ -206,9 +303,10 @@ public class EnemyActor : MonoBehaviour, IFogVisibilityResponder
         HealthChanged?.Invoke();
     }
 
-    public void ShowCombatInformation()
+    public void ShowCombatInformation(int rewardRound = 1)
     {
         showingCombatInformation = true;
+        projectedRewardRound = Mathf.Max(1, rewardRound);
         if (fogVisibility != CellVisibility.Visible)
         {
             return;
@@ -218,7 +316,7 @@ public class EnemyActor : MonoBehaviour, IFogVisibilityResponder
         worldUI?.ShowCombat(
             CurrentHP,
             ResolvedMaxHP,
-            definition != null ? definition.RewardNumber : 0
+            GetRewardDisplay(projectedRewardRound)
         );
     }
 
@@ -231,13 +329,18 @@ public class EnemyActor : MonoBehaviour, IFogVisibilityResponder
 
         CurrentHP = Mathf.Max(0, CurrentHP - amount);
         HealthChanged?.Invoke();
-        ShowCombatInformation();
+        ShowCombatInformation(projectedRewardRound);
         return CurrentHP == 0;
     }
 
     public void ReleaseAndDestroy()
     {
         GetComponent<GridObject>().ReleaseAndDestroy();
+    }
+
+    public void RecordStolenNumber(int amount)
+    {
+        StolenNumberEscrow += Mathf.Max(0, amount);
     }
 
     public void ShowExplorationInformation()
@@ -249,7 +352,9 @@ public class EnemyActor : MonoBehaviour, IFogVisibilityResponder
         }
 
         EnsureWorldUI();
-        worldUI?.ShowExploration(definition != null ? definition.RewardNumber : 0);
+        worldUI?.ShowExploration(
+            definition != null ? definition.RewardPreview : "0"
+        );
     }
 
     public void ApplyFogVisibility(CellVisibility visibility)
@@ -271,7 +376,7 @@ public class EnemyActor : MonoBehaviour, IFogVisibilityResponder
                     worldUI?.ShowCombat(
                         CurrentHP,
                         ResolvedMaxHP,
-                        definition != null ? definition.RewardNumber : 0
+                        GetRewardDisplay(projectedRewardRound)
                     );
                     if (HasLockedIntent)
                     {
@@ -281,7 +386,7 @@ public class EnemyActor : MonoBehaviour, IFogVisibilityResponder
                 else
                 {
                     worldUI?.ShowExploration(
-                        definition != null ? definition.RewardNumber : 0
+                        definition != null ? definition.RewardPreview : "0"
                     );
                 }
                 break;
@@ -353,5 +458,95 @@ public class EnemyActor : MonoBehaviour, IFogVisibilityResponder
         {
             characterAnimator.Play(stateHash, 0, 0f);
         }
+    }
+
+    private EnemyIntentResolution ResolveDrunkenRaiderIntent()
+    {
+        if (CurrentIntent == EnemyIntentType.Attack)
+        {
+            int damage = GetCurrentIntentDamage();
+            nextAttackBonus = 0;
+            return new EnemyIntentResolution(
+                damage,
+                0,
+                $"普攻：-{damage}"
+            );
+        }
+
+        if (CurrentIntent != EnemyIntentType.Special)
+        {
+            return new EnemyIntentResolution(0, 0, "等待");
+        }
+
+        switch (definition.RollDrunkenRaiderDrinkOutcome())
+        {
+            case DrunkenRaiderDrinkOutcome.Strengthen:
+                nextAttackBonus = definition.RaiderNextAttackBonus;
+                return new EnemyIntentResolution(
+                    0,
+                    0,
+                    $"喝酒：强化，下次普攻 +{nextAttackBonus}"
+                );
+
+            case DrunkenRaiderDrinkOutcome.SelfDamage:
+                return new EnemyIntentResolution(
+                    0,
+                    definition.RaiderSelfDamage,
+                    $"喝酒：自伤 -{definition.RaiderSelfDamage}"
+                );
+
+            default:
+                return new EnemyIntentResolution(
+                    0,
+                    0,
+                    "喝酒：晕眩，本回合无事发生"
+                );
+        }
+    }
+
+    private EnemyIntentResolution ResolveHamsterIntent()
+    {
+        if (CurrentIntent == EnemyIntentType.Special)
+        {
+            return new EnemyIntentResolution(
+                0,
+                0,
+                $"携带 {StolenNumberEscrow} 点逃跑",
+                escapes: true
+            );
+        }
+
+        if (CurrentIntent != EnemyIntentType.Steal)
+        {
+            return new EnemyIntentResolution(0, 0, "等待");
+        }
+
+        return new EnemyIntentResolution(
+            0,
+            0,
+            $"偷取 {definition.HamsterStealAmount}",
+            definition.HamsterStealAmount
+        );
+    }
+
+    private string GetRewardDisplay(int battleRound)
+    {
+        if (definition == null)
+        {
+            return "0";
+        }
+
+        if (definition.RewardMode != EnemyRewardMode.TurnScaled ||
+            !IsHealthResolved)
+        {
+            return definition.RewardPreview;
+        }
+
+        int reward = definition.CalculateNumberReward(
+            ResolvedMaxHP,
+            battleRound,
+            0
+        );
+        return $"{reward}（第{battleRound}回合）";
     }
 }

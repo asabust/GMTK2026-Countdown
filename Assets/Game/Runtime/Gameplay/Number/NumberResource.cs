@@ -12,6 +12,8 @@ public enum NumberChangeReason
     Offering,
     Campfire,
     Reward,
+    Stolen,
+    StolenReturn,
     Other
 }
 
@@ -132,6 +134,22 @@ public class NumberResource : MonoBehaviour
             NumberChangeReason.Damage,
             worldPosition
         );
+    }
+
+    public int TakeUpTo(
+        int amount,
+        NumberChangeReason reason,
+        Vector3 worldPosition
+    )
+    {
+        int taken = Mathf.Min(Mathf.Max(0, amount), CurrentValue);
+        if (taken <= 0)
+        {
+            return 0;
+        }
+
+        ApplyValue(CurrentValue - taken, reason, worldPosition);
+        return taken;
     }
 
     public void ResetForNewRun()

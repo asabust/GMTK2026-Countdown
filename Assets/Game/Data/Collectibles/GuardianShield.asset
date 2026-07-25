@@ -17,7 +17,7 @@ MonoBehaviour:
   description: "\u4E3A\u4E0B\u4E00\u4E2A\u654C\u4EBA\u9636\u6BB5\u63D0\u4F9B 6 \u70B9\u62A4\u76FE\u3002\u4E0D\u53EF\u53E0\u52A0\u3002"
   icon: {fileID: 21300000, guid: d40dacb2732b34cecbabe2c2ced212b2, type: 3}
   kind: 0
-  maximumStacks: 3
+  maximumStacks: 99
   inventoryOrder: 3
   effectType: 6
   effectValue: 6
