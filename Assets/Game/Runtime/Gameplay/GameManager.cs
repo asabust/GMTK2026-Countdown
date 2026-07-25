@@ -52,6 +52,7 @@ public class GameManager : Singleton<GameManager>
     public void StartNewGame()
     {
         FindObjectOfType<EncounterController>()?.PrepareForSceneTransition();
+        FindObjectOfType<InteractionController>()?.PrepareForSceneTransition();
         UIManager.Instance?.Close<GameOverPanel>();
         NumberResource.Instance?.ResetForNewRun();
         SetGamePhase(GamePhase.Gameplay);
@@ -85,6 +86,7 @@ public class GameManager : Singleton<GameManager>
     public void ReturnToTitle()
     {
         FindObjectOfType<EncounterController>()?.PrepareForSceneTransition();
+        FindObjectOfType<InteractionController>()?.PrepareForSceneTransition();
         UIManager.Instance?.Close<GameOverPanel>();
         SetGamePhase(GamePhase.GameTitle);
         TransitionManager.Instance.TransitionTo(titleScene);
