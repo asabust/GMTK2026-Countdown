@@ -19,6 +19,7 @@ public class EncounterController : MonoBehaviour
 {
     private PlayerGridController playerController;
     private NumberResource numberResource;
+    private PlayerInventory playerInventory;
 
     [SerializeField, Min(1)] private int basicAttackCost = 1;
     [SerializeField, Min(1)] private int basicAttackDamage = 3;
@@ -79,6 +80,7 @@ public class EncounterController : MonoBehaviour
     {
         playerController = GetComponent<PlayerGridController>();
         numberResource = GetComponent<NumberResource>();
+        playerInventory = GetComponent<PlayerInventory>();
     }
 
     private void OnEnable()
@@ -399,8 +401,8 @@ public class EncounterController : MonoBehaviour
                 baseReward,
                 accumulatedNumberLoss,
                 battleLoot,
-                greedySuccessChance,
-                greedyMultiplier,
+                GetEffectiveGreedySuccessChance(),
+                GetEffectiveGreedyMultiplier(),
                 ResolveRewardChoice,
                 CompleteReward
             )
@@ -430,9 +432,11 @@ public class EncounterController : MonoBehaviour
             return lockedRewardResult;
         }
 
-        bool succeeded = GameRandom.Chance(greedySuccessChance);
+        float effectiveChance = GetEffectiveGreedySuccessChance();
+        float effectiveMultiplier = GetEffectiveGreedyMultiplier();
+        bool succeeded = GameRandom.Chance(effectiveChance);
         int gain = succeeded
-            ? Mathf.FloorToInt(currentBattleLoot * greedyMultiplier)
+            ? Mathf.FloorToInt(currentBattleLoot * effectiveMultiplier)
             : 0;
         lockedRewardResult = new BattleRewardResult(choice, succeeded, gain);
         return lockedRewardResult;
@@ -457,6 +461,27 @@ public class EncounterController : MonoBehaviour
         currentBattleLoot = 0;
         hasUsedStruggle = false;
         SetPhase(EncounterPhase.Exploration);
+    }
+
+    private float GetEffectiveGreedySuccessChance()
+    {
+        float bonus = playerInventory != null
+            ? playerInventory.GetRelicEffect(
+                CollectibleEffectType.GreedChanceBonus
+            )
+            : 0f;
+        return Mathf.Clamp(greedySuccessChance + bonus, 0f, 0.9f);
+    }
+
+    private float GetEffectiveGreedyMultiplier()
+    {
+        float overrideValue = playerInventory != null
+            ? playerInventory.GetRelicEffect(
+                CollectibleEffectType.GreedMultiplierOverride,
+                highest: true
+            )
+            : 0f;
+        return overrideValue > 0f ? overrideValue : greedyMultiplier;
     }
 
     private void HandleNumberChanged(NumberChange change)

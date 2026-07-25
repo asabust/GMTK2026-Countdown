@@ -55,6 +55,7 @@ public class GameManager : Singleton<GameManager>
         FindObjectOfType<InteractionController>()?.PrepareForSceneTransition();
         UIManager.Instance?.Close<GameOverPanel>();
         NumberResource.Instance?.ResetForNewRun();
+        FindObjectOfType<PlayerInventory>()?.ResetForNewRun();
         SetGamePhase(GamePhase.Gameplay);
         TransitionManager.Instance.TransitionTo(firstGameScene);
     }
