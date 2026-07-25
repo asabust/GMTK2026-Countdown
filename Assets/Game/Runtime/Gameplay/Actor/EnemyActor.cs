@@ -50,6 +50,10 @@ public class EnemyActor : MonoBehaviour, IFogVisibilityResponder
     [SerializeField] private string bossPhase2IdleAnimationState = "Boss_idle2";
     [SerializeField] private string bossPhase2AttackAnimationState = "Boss_attack2";
     [SerializeField] private string bossPhase2SpecialAnimationState = "Boss_attack2";
+    [Header("Hit Flash")]
+    [SerializeField, Min(1)] private int hitFlashCount = 2;
+    [SerializeField, Min(0f)] private float hitFlashDuration = 0.14f;
+    [SerializeField, Min(0f)] private float hitFlashRecoveryDuration = 0.1f;
 
     private EnemyWorldUI worldUI;
     private Animator characterAnimator;
@@ -357,11 +361,7 @@ public class EnemyActor : MonoBehaviour, IFogVisibilityResponder
         return CurrentHP == 0;
     }
 
-    public IEnumerator PlayHitFlash(
-        int flashCount = 2,
-        float flashDuration = 0.08f,
-        float recoveryDuration = 0.06f
-    )
+    public IEnumerator PlayHitFlash()
     {
         if (characterSpriteRenderer == null)
         {
@@ -375,19 +375,21 @@ public class EnemyActor : MonoBehaviour, IFogVisibilityResponder
 
         Color originalColor = characterSpriteRenderer.color;
         Color hitColor = new(1f, 0.12f, 0.12f, originalColor.a);
-        int count = Mathf.Max(1, flashCount);
+        int count = Mathf.Max(1, hitFlashCount);
         for (int i = 0; i < count; i++)
         {
             characterSpriteRenderer.color = hitColor;
-            if (flashDuration > 0f)
+            if (hitFlashDuration > 0f)
             {
-                yield return new WaitForSeconds(flashDuration);
+                yield return new WaitForSeconds(hitFlashDuration);
             }
 
             characterSpriteRenderer.color = originalColor;
-            if (i < count - 1 && recoveryDuration > 0f)
+            if (i < count - 1 && hitFlashRecoveryDuration > 0f)
             {
-                yield return new WaitForSeconds(recoveryDuration);
+                yield return new WaitForSeconds(
+                    hitFlashRecoveryDuration
+                );
             }
         }
 

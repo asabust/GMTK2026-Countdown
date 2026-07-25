@@ -9,8 +9,6 @@ public class FogOfWarSystem : MonoBehaviour
     [SerializeField, Min(0)] private int visionRadius = 1;
     [SerializeField] private Color unexploredColor =
         new(0.025f, 0.03f, 0.045f, 1f);
-    [SerializeField] private Color exploredColor =
-        new(0.04f, 0.055f, 0.08f, 0.72f);
     [SerializeField] private Sprite[] fogSprites;
     [SerializeField] private string fogSortingLayer = "Fog";
     [SerializeField] private int fogSortingOrder;
@@ -19,7 +17,6 @@ public class FogOfWarSystem : MonoBehaviour
     private PlayerGridController playerController;
     private Tilemap fogTilemap;
     private Tile unexploredTile;
-    private Tile exploredTile;
     private Tile[] unexploredArtTiles;
     private Texture2D fogTexture;
     private Sprite fogSprite;
@@ -60,7 +57,6 @@ public class FogOfWarSystem : MonoBehaviour
     private void OnDestroy()
     {
         DestroyRuntimeAsset(unexploredTile);
-        DestroyRuntimeAsset(exploredTile);
         DestroyRuntimeTiles(unexploredArtTiles);
         DestroyRuntimeAsset(fogSprite);
         DestroyRuntimeAsset(fogTexture);
@@ -352,7 +348,7 @@ public class FogOfWarSystem : MonoBehaviour
         {
             CellVisibility.Unexplored =>
                 GetFogTile(unexploredArtTiles, unexploredTile, cell.Position),
-            CellVisibility.Explored => exploredTile,
+            CellVisibility.Explored => null,
             _ => null
         };
         fogTilemap.SetTile(tilePosition, tile);
@@ -425,11 +421,6 @@ public class FogOfWarSystem : MonoBehaviour
             );
         }
 
-        exploredTile = CreateRuntimeTile(
-            "Explored Fog Tile",
-            fogSprite,
-            exploredColor
-        );
     }
 
     private Tile[] CreateRuntimeTiles(string prefix, Color color)
@@ -531,11 +522,6 @@ public class FogOfWarSystem : MonoBehaviour
         else if (unexploredTile != null)
         {
             unexploredTile.color = unexploredColor;
-        }
-
-        if (exploredTile != null)
-        {
-            exploredTile.color = exploredColor;
         }
 
         if (playerController != null &&
