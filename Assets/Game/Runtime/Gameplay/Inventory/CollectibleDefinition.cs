@@ -10,7 +10,8 @@ public enum CollectibleEffectType
     GreedMultiplierOverride,
     TimedAttackBonus,
     NegateNextAttack,
-    NextEnemyPhaseShield
+    NextEnemyPhaseShield,
+    RepeatedGreed
 }
 
 [CreateAssetMenu(fileName = "CollectibleDefinition", menuName = "Zero/Collectible Definition")]

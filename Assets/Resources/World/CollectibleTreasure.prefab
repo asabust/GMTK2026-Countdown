@@ -81,7 +81,7 @@ MonoBehaviour:
   m_EditorClassIdentifier:
   rewardType: 1
   skill: {fileID: 0}
-  collectibleReward: {fileID: 0}
+  collectibleReward: {fileID: 11400000, guid: a7284acdbf594424a7a99eca63b38119, type: 2}
 --- !u!212 &21200000
 SpriteRenderer:
   m_ObjectHideFlags: 0

@@ -44,8 +44,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: a0958592c541443fa8db077b61efa5f2, type: 3}
-  m_Name:
-  m_EditorClassIdentifier:
+  m_Name: 
+  m_EditorClassIdentifier: 
   size: {x: 1, y: 1}
   occupantType: 2
   snapToCellCenter: 1
@@ -59,14 +59,17 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 6f169db6d3f4433ba73477a2bdddc9de, type: 3}
-  m_Name:
-  m_EditorClassIdentifier:
+  m_Name: 
+  m_EditorClassIdentifier: 
   definition: {fileID: 11400000, guid: 4c2759a6237b4a18958dff0c73448a42, type: 2}
   worldUIPrefab: {fileID: 0}
   worldUIOffset: {x: 0, y: 0.5, z: 0}
   idleAnimationState: hamsterIdle
   attackAnimationState: hamster_attack
   specialAnimationState: hamsterIdle
+  bossPhase2IdleAnimationState: Boss_idle2
+  bossPhase2AttackAnimationState: Boss_attack2
+  bossPhase2SpecialAnimationState: Boss_attack2
 --- !u!1 &200004
 GameObject:
   m_ObjectHideFlags: 0
@@ -166,3 +169,10 @@ Animator:
   m_CullingMode: 0
   m_UpdateMode: 0
   m_ApplyRootMotion: 0
+  m_LinearVelocityBlending: 0
+  m_StabilizeFeet: 0
+  m_WarningMessage: 
+  m_HasTransformHierarchy: 1
+  m_AllowConstantClipSamplingOptimization: 1
+  m_KeepAnimatorStateOnDisable: 0
+  m_WriteDefaultValuesOnDisable: 0

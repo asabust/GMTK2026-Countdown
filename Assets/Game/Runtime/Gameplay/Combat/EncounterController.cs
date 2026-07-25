@@ -40,6 +40,9 @@ public class EncounterController : MonoBehaviour
     private BattleRewardResult lockedRewardResult;
     private Vector3 rewardWorldPosition;
     private int currentBattleLoot;
+    private int successfulGreedAttempts;
+    private int currentGreedyWinnings;
+    private bool hasBrokenMirror;
     private bool hasUsedStruggle;
     private int battleRound;
 
@@ -78,6 +81,9 @@ public class EncounterController : MonoBehaviour
         rewardChoiceResolved = false;
         lockedRewardResult = default;
         currentBattleLoot = 0;
+        successfulGreedAttempts = 0;
+        currentGreedyWinnings = 0;
+        hasBrokenMirror = false;
         hasUsedStruggle = false;
         battleRound = 0;
         battleStatusWorldUI?.SetCombatVisible(false);
@@ -690,6 +696,9 @@ public class EncounterController : MonoBehaviour
         playerController.SetExternalInputLocked(true);
         rewardWorldPosition = defeatedEnemy.transform.position;
         currentBattleLoot = battleLoot;
+        successfulGreedAttempts = 0;
+        currentGreedyWinnings = 0;
+        hasBrokenMirror = HasBrokenMirror();
         CurrentEnemy = null;
         battleStatusWorldUI?.SetCombatVisible(false);
         defeatedEnemy.ReleaseAndDestroy();
@@ -765,25 +774,66 @@ public class EncounterController : MonoBehaviour
             return lockedRewardResult;
         }
 
-        rewardChoiceResolved = true;
         if (choice == BattleRewardChoice.Safe)
         {
+            rewardChoiceResolved = true;
+            int safeGain = successfulGreedAttempts > 0
+                ? currentGreedyWinnings
+                : currentBattleLoot;
             lockedRewardResult = new BattleRewardResult(
                 choice,
                 true,
-                currentBattleLoot
+                safeGain
             );
             return lockedRewardResult;
         }
 
-        float effectiveChance = GetEffectiveGreedySuccessChance();
+        float effectiveChance = successfulGreedAttempts == 0
+            ? GetEffectiveGreedySuccessChance()
+            : GetMirrorAdditionalGreedChance(
+                successfulGreedAttempts
+            );
         float effectiveMultiplier = GetEffectiveGreedyMultiplier();
         bool succeeded = GameRandom.Chance(effectiveChance);
-        int gain = succeeded
-            ? Mathf.FloorToInt(currentBattleLoot * effectiveMultiplier)
-            : 0;
-        lockedRewardResult = new BattleRewardResult(choice, succeeded, gain);
-        return lockedRewardResult;
+        if (!succeeded)
+        {
+            rewardChoiceResolved = true;
+            lockedRewardResult = new BattleRewardResult(
+                choice,
+                false,
+                currentGreedyWinnings
+            );
+            return lockedRewardResult;
+        }
+
+        int independentGain = Mathf.FloorToInt(
+            currentBattleLoot * effectiveMultiplier
+        );
+        currentGreedyWinnings += independentGain;
+        successfulGreedAttempts++;
+
+        float nextChance = GetMirrorAdditionalGreedChance(
+            successfulGreedAttempts
+        );
+        bool canContinue = hasBrokenMirror && nextChance > 0f;
+        if (!canContinue)
+        {
+            rewardChoiceResolved = true;
+            lockedRewardResult = new BattleRewardResult(
+                choice,
+                true,
+                currentGreedyWinnings
+            );
+            return lockedRewardResult;
+        }
+
+        return new BattleRewardResult(
+            choice,
+            true,
+            currentGreedyWinnings,
+            isFinal: false,
+            nextGreedSuccessChance: nextChance
+        );
     }
 
     private void CompleteReward()
@@ -803,6 +853,9 @@ public class EncounterController : MonoBehaviour
         rewardChoiceResolved = false;
         lockedRewardResult = default;
         currentBattleLoot = 0;
+        successfulGreedAttempts = 0;
+        currentGreedyWinnings = 0;
+        hasBrokenMirror = false;
         hasUsedStruggle = false;
         battleRound = 0;
         SetPhase(EncounterPhase.Exploration);
@@ -822,6 +875,9 @@ public class EncounterController : MonoBehaviour
         rewardChoiceResolved = false;
         lockedRewardResult = default;
         currentBattleLoot = 0;
+        successfulGreedAttempts = 0;
+        currentGreedyWinnings = 0;
+        hasBrokenMirror = false;
         hasUsedStruggle = false;
         battleRound = 0;
         SetPhase(EncounterPhase.Exploration);
@@ -870,6 +926,20 @@ public class EncounterController : MonoBehaviour
             : 0f;
         return overrideValue > 0f ? overrideValue : greedyMultiplier;
     }
+
+    private bool HasBrokenMirror()
+    {
+        float mirrorCount = playerInventory != null
+            ? playerInventory.GetRelicEffect(
+                CollectibleEffectType.RepeatedGreed
+            )
+            : 0f;
+        return mirrorCount > 0f;
+    }
+
+    private static float GetMirrorAdditionalGreedChance(
+        int successfulAttempts
+    ) => Mathf.Clamp01(0.5f - successfulAttempts * 0.1f);
 
     private bool CanStruggleNow() =>
         Phase == EncounterPhase.PlayerTurn &&

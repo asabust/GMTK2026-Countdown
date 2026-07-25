@@ -34,6 +34,7 @@ public class GameHUDPanel : UIPanel
 
     public override void OnInit()
     {
+        EnsureRelicSlotCapacity(4);
         parentCanvas = GetComponentInParent<Canvas>();
         if (deltaPopupRoot == null)
         {
@@ -113,7 +114,7 @@ public class GameHUDPanel : UIPanel
     {
         List<CollectibleStack> items =
             playerInventory?.GetOrderedItemStacks() ?? new List<CollectibleStack>();
-        List<CollectibleStack> relics = new();
+        List<CollectibleDefinition> relics = new();
         if (playerInventory != null)
         {
             foreach (CollectibleStack stack in playerInventory.Stacks)
@@ -121,17 +122,111 @@ public class GameHUDPanel : UIPanel
                 if (stack?.Definition != null &&
                     stack.Definition.Kind == CollectibleKind.Relic)
                 {
-                    relics.Add(stack);
+                    for (int i = 0; i < stack.Count; i++)
+                    {
+                        relics.Add(stack.Definition);
+                    }
                 }
             }
             relics.Sort((left, right) =>
-                left.Definition.InventoryOrder.CompareTo(
-                    right.Definition.InventoryOrder
+                left.InventoryOrder.CompareTo(
+                    right.InventoryOrder
                 ));
         }
 
         RefreshSlots(itemIcons, itemCounts, items, inventoryTooltip);
-        RefreshSlots(relicIcons, relicCounts, relics, inventoryTooltip);
+        RefreshRelicSlots(relics);
+    }
+
+    private void RefreshRelicSlots(
+        IReadOnlyList<CollectibleDefinition> relics
+    )
+    {
+        for (int i = 0; i < relicIcons.Length; i++)
+        {
+            CollectibleDefinition definition =
+                i < relics.Count ? relics[i] : null;
+            if (relicIcons[i] != null)
+            {
+                relicIcons[i].sprite = definition?.Icon;
+                relicIcons[i].enabled = definition?.Icon != null;
+            }
+            if (relicCounts.Length > i && relicCounts[i] != null)
+            {
+                relicCounts[i].text = string.Empty;
+            }
+
+            HoverTooltipTarget target =
+                relicIcons[i]?.GetComponentInParent<HoverTooltipTarget>();
+            target?.Bind(
+                inventoryTooltip,
+                definition?.DisplayName,
+                definition?.Description
+            );
+        }
+    }
+
+    private void EnsureRelicSlotCapacity(int requiredCapacity)
+    {
+        if (relicIcons == null ||
+            relicCounts == null ||
+            relicIcons.Length >= requiredCapacity ||
+            relicIcons.Length == 0)
+        {
+            return;
+        }
+
+        int originalLength = relicIcons.Length;
+        Image sourceIcon = relicIcons[originalLength - 1];
+        HoverTooltipTarget sourceSlot =
+            sourceIcon?.GetComponentInParent<HoverTooltipTarget>();
+        if (sourceSlot == null)
+        {
+            return;
+        }
+
+        Array.Resize(ref relicIcons, requiredCapacity);
+        Array.Resize(ref relicCounts, requiredCapacity);
+        RectTransform previousRect = sourceSlot.transform as RectTransform;
+        for (int i = originalLength; i < requiredCapacity; i++)
+        {
+            GameObject clone = Instantiate(
+                sourceSlot.gameObject,
+                sourceSlot.transform.parent
+            );
+            clone.name = $"RelicSlot{i + 1}";
+            RectTransform cloneRect = clone.transform as RectTransform;
+            if (cloneRect != null && previousRect != null)
+            {
+                float spacing = previousRect.rect.width + 8f;
+                cloneRect.anchoredPosition =
+                    previousRect.anchoredPosition +
+                    new Vector2(spacing, 0f);
+            }
+
+            relicIcons[i] = FindNamedChild<Image>(clone.transform, "Icon");
+            relicCounts[i] = FindNamedChild<TMP_Text>(
+                clone.transform,
+                "Count"
+            );
+            previousRect = cloneRect;
+        }
+    }
+
+    private static T FindNamedChild<T>(
+        Transform parent,
+        string childName
+    ) where T : Component
+    {
+        foreach (T component in parent.GetComponentsInChildren<T>(true))
+        {
+            if (component.gameObject.name == childName)
+            {
+                return component;
+            }
+        }
+
+        return null;
     }
 
     private static void RefreshSlots(

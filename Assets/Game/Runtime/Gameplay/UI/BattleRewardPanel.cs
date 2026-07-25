@@ -15,17 +15,23 @@ public readonly struct BattleRewardResult
     public BattleRewardResult(
         BattleRewardChoice choice,
         bool succeeded,
-        int gainedNumber
+        int gainedNumber,
+        bool isFinal = true,
+        float nextGreedSuccessChance = 0f
     )
     {
         Choice = choice;
         Succeeded = succeeded;
         GainedNumber = gainedNumber;
+        IsFinal = isFinal;
+        NextGreedSuccessChance = nextGreedSuccessChance;
     }
 
     public BattleRewardChoice Choice { get; }
     public bool Succeeded { get; }
     public int GainedNumber { get; }
+    public bool IsFinal { get; }
+    public float NextGreedSuccessChance { get; }
 }
 
 public sealed class BattleRewardRequest
@@ -77,6 +83,7 @@ public class BattleRewardPanel : UIPanel
     private BattleRewardRequest request;
     private Coroutine finishRoutine;
     private bool resolved;
+    private bool isAdditionalGreed;
 
     public override void OnInit()
     {
@@ -88,6 +95,7 @@ public class BattleRewardPanel : UIPanel
     {
         request = data as BattleRewardRequest;
         resolved = false;
+        isAdditionalGreed = false;
         SetButtonsInteractable(true);
 
         if (request == null)
@@ -138,6 +146,7 @@ public class BattleRewardPanel : UIPanel
 
         request = null;
         resolved = false;
+        isAdditionalGreed = false;
     }
 
     private void ChooseSafe()
@@ -161,9 +170,34 @@ public class BattleRewardPanel : UIPanel
         SetButtonsInteractable(false);
         BattleRewardResult result = request.Resolve(choice);
 
+        if (!result.IsFinal)
+        {
+            int nextSuccessPercent = Mathf.RoundToInt(
+                result.NextGreedSuccessChance * 100f
+            );
+            int independentGain = Mathf.FloorToInt(
+                request.BattleLoot * request.GreedyMultiplier
+            );
+            int nextTotal = result.GainedNumber + independentGain;
+            isAdditionalGreed = true;
+            safeText.text = $"收手，获得 {result.GainedNumber}";
+            greedyText.text =
+                $"追加贪婪\n{nextSuccessPercent}% 本次 +{independentGain}" +
+                $"（累计 {nextTotal}）\n" +
+                $"{100 - nextSuccessPercent}% 本次 +0";
+            resultText.text =
+                $"贪婪成功，当前累计：{result.GainedNumber}\n" +
+                "可以收手，或继续追加贪婪";
+            resolved = false;
+            SetButtonsInteractable(true);
+            return;
+        }
+
         if (choice == BattleRewardChoice.Safe)
         {
-            resultText.text = $"安全领取：+{result.GainedNumber}";
+            resultText.text = isAdditionalGreed
+                ? $"收手领取：+{result.GainedNumber}"
+                : $"安全领取：+{result.GainedNumber}";
         }
         else if (result.Succeeded)
         {
@@ -171,7 +205,9 @@ public class BattleRewardPanel : UIPanel
         }
         else
         {
-            resultText.text = "贪婪失败：+0";
+            resultText.text = result.GainedNumber > 0
+                ? $"本次贪婪失败，追加结束\n已获得：+{result.GainedNumber}"
+                : "贪婪失败：+0";
         }
 
         finishRoutine = StartCoroutine(FinishAfterResult());

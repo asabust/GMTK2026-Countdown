@@ -11,6 +11,7 @@ public class FogOfWarSystem : MonoBehaviour
         new(0.025f, 0.03f, 0.045f, 1f);
     [SerializeField] private Color exploredColor =
         new(0.04f, 0.055f, 0.08f, 0.72f);
+    [SerializeField] private Sprite[] fogSprites;
     [SerializeField] private string fogSortingLayer = "Fog";
     [SerializeField] private int fogSortingOrder;
 
@@ -19,6 +20,7 @@ public class FogOfWarSystem : MonoBehaviour
     private Tilemap fogTilemap;
     private Tile unexploredTile;
     private Tile exploredTile;
+    private Tile[] unexploredArtTiles;
     private Texture2D fogTexture;
     private Sprite fogSprite;
     private bool isInitialized;
@@ -59,6 +61,7 @@ public class FogOfWarSystem : MonoBehaviour
     {
         DestroyRuntimeAsset(unexploredTile);
         DestroyRuntimeAsset(exploredTile);
+        DestroyRuntimeTiles(unexploredArtTiles);
         DestroyRuntimeAsset(fogSprite);
         DestroyRuntimeAsset(fogTexture);
     }
@@ -347,7 +350,8 @@ public class FogOfWarSystem : MonoBehaviour
             new(cell.Position.x, cell.Position.y, 0);
         TileBase tile = cell.Visibility switch
         {
-            CellVisibility.Unexplored => unexploredTile,
+            CellVisibility.Unexplored =>
+                GetFogTile(unexploredArtTiles, unexploredTile, cell.Position),
             CellVisibility.Explored => exploredTile,
             _ => null
         };
@@ -405,25 +409,88 @@ public class FogOfWarSystem : MonoBehaviour
         fogSprite.name = "Runtime Fog Sprite";
         fogSprite.hideFlags = HideFlags.HideAndDontSave;
 
-        unexploredTile = CreateRuntimeTile(
-            "Unexplored Fog Tile",
-            unexploredColor
-        );
+        if (fogSprites != null && fogSprites.Length > 0)
+        {
+            unexploredArtTiles = CreateRuntimeTiles(
+                "Unexplored Fog Art",
+                new Color(1f, 1f, 1f, unexploredColor.a)
+            );
+        }
+        else
+        {
+            unexploredTile = CreateRuntimeTile(
+                "Unexplored Fog Tile",
+                fogSprite,
+                unexploredColor
+            );
+        }
+
         exploredTile = CreateRuntimeTile(
             "Explored Fog Tile",
+            fogSprite,
             exploredColor
         );
     }
 
-    private Tile CreateRuntimeTile(string tileName, Color color)
+    private Tile[] CreateRuntimeTiles(string prefix, Color color)
+    {
+        Tile[] tiles = new Tile[fogSprites.Length];
+        for (int i = 0; i < fogSprites.Length; i++)
+        {
+            tiles[i] = CreateRuntimeTile(
+                $"{prefix} {i + 1}",
+                fogSprites[i],
+                color
+            );
+        }
+        return tiles;
+    }
+
+    private static TileBase GetFogTile(
+        Tile[] variants,
+        Tile fallback,
+        Vector2Int position
+    )
+    {
+        if (variants == null || variants.Length == 0)
+        {
+            return fallback;
+        }
+
+        unchecked
+        {
+            int hash = position.x * 73856093 ^ position.y * 19349663;
+            int index = (int)((uint)hash % (uint)variants.Length);
+            return variants[index] != null ? variants[index] : fallback;
+        }
+    }
+
+    private Tile CreateRuntimeTile(
+        string tileName,
+        Sprite sprite,
+        Color color
+    )
     {
         Tile tile = ScriptableObject.CreateInstance<Tile>();
         tile.name = tileName;
-        tile.sprite = fogSprite;
+        tile.sprite = sprite;
         tile.color = color;
         tile.colliderType = Tile.ColliderType.None;
         tile.hideFlags = HideFlags.HideAndDontSave;
         return tile;
+    }
+
+    private static void DestroyRuntimeTiles(Tile[] tiles)
+    {
+        if (tiles == null)
+        {
+            return;
+        }
+
+        foreach (Tile tile in tiles)
+        {
+            DestroyRuntimeAsset(tile);
+        }
     }
 
     private static void DestroyRuntimeAsset(UnityEngine.Object asset)
@@ -452,7 +519,16 @@ public class FogOfWarSystem : MonoBehaviour
             return;
         }
 
-        if (unexploredTile != null)
+        if (unexploredArtTiles != null)
+        {
+            foreach (Tile tile in unexploredArtTiles)
+            {
+                if (tile != null)
+                    tile.color =
+                        new Color(1f, 1f, 1f, unexploredColor.a);
+            }
+        }
+        else if (unexploredTile != null)
         {
             unexploredTile.color = unexploredColor;
         }
