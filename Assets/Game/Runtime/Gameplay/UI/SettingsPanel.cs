@@ -8,6 +8,8 @@ using UnityEngine.UI;
 
 public class SettingsPanel : UIPanel, IPointerClickHandler
 {
+    private const int OverlaySortingOrder = 100;
+
     private static readonly Language[] Languages =
     {
         Language.English,
@@ -32,6 +34,7 @@ public class SettingsPanel : UIPanel, IPointerClickHandler
 
     public override void OnInit()
     {
+        EnsureOverlayCanvas();
         ConfigureSlider(musicSlider);
         ConfigureSlider(sfxSlider);
 
@@ -41,6 +44,22 @@ public class SettingsPanel : UIPanel, IPointerClickHandler
             HandleLanguageChanged
         );
         GameLocalization.LanguageChanged += RefreshLocalizedContent;
+    }
+
+    private void EnsureOverlayCanvas()
+    {
+        Canvas overlayCanvas = GetComponent<Canvas>();
+        if (overlayCanvas == null)
+        {
+            overlayCanvas = gameObject.AddComponent<Canvas>();
+        }
+
+        overlayCanvas.overrideSorting = true;
+        overlayCanvas.sortingOrder = OverlaySortingOrder;
+        if (GetComponent<GraphicRaycaster>() == null)
+        {
+            gameObject.AddComponent<GraphicRaycaster>();
+        }
     }
 
     public override void OnOpen(object data = null)

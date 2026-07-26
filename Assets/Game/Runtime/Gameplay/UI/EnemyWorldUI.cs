@@ -11,18 +11,21 @@ public class EnemyWorldUI : MonoBehaviour
     [SerializeField] private GameObject intentRoot;
     [SerializeField] private TMP_Text intentText;
 
+    private void Awake()
+    {
+        HideRewardAndIntent();
+    }
+
+    private void OnEnable()
+    {
+        HideRewardAndIntent();
+    }
+
     public void ShowExploration(string rewardDescription)
     {
-        rewardRoot?.SetActive(true);
+        rewardRoot?.SetActive(false);
         healthRoot?.SetActive(false);
         intentRoot?.SetActive(false);
-        if (rewardText != null)
-        {
-            rewardText.text = GameLocalization.Get(
-                "enemy.world.reward",
-                rewardDescription
-            );
-        }
     }
 
     public void ShowCombat(
@@ -31,17 +34,9 @@ public class EnemyWorldUI : MonoBehaviour
         string rewardDescription
     )
     {
-        rewardRoot?.SetActive(true);
+        rewardRoot?.SetActive(false);
         healthRoot?.SetActive(true);
         intentRoot?.SetActive(false);
-
-        if (rewardText != null)
-        {
-            rewardText.text = GameLocalization.Get(
-                "enemy.world.reward",
-                rewardDescription
-            );
-        }
 
         if (healthText != null)
         {
@@ -55,11 +50,7 @@ public class EnemyWorldUI : MonoBehaviour
 
     public void ShowIntent(string description)
     {
-        intentRoot?.SetActive(true);
-        if (intentText != null)
-        {
-            intentText.text = description;
-        }
+        intentRoot?.SetActive(false);
     }
 
     public void HideIntent()
@@ -71,6 +62,12 @@ public class EnemyWorldUI : MonoBehaviour
     {
         rewardRoot?.SetActive(false);
         healthRoot?.SetActive(false);
+        intentRoot?.SetActive(false);
+    }
+
+    private void HideRewardAndIntent()
+    {
+        rewardRoot?.SetActive(false);
         intentRoot?.SetActive(false);
     }
 }
