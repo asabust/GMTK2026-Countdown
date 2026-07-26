@@ -24,6 +24,7 @@ public class TitlePanel : MonoBehaviour
 
         startButton?.onClick.AddListener(StartNewGame);
         quitButton?.onClick.AddListener(QuitGame);
+        settingsButton?.onClick.AddListener(ToggleSettings);
         GameLocalization.LanguageChanged += RefreshText;
         RefreshText();
     }
@@ -32,6 +33,7 @@ public class TitlePanel : MonoBehaviour
     {
         startButton?.onClick.RemoveListener(StartNewGame);
         quitButton?.onClick.RemoveListener(QuitGame);
+        settingsButton?.onClick.RemoveListener(ToggleSettings);
         GameLocalization.LanguageChanged -= RefreshText;
     }
 
@@ -43,6 +45,23 @@ public class TitlePanel : MonoBehaviour
     private static void QuitGame()
     {
         GameManager.Instance?.QuitGame();
+    }
+
+    private static void ToggleSettings()
+    {
+        if (UIManager.Instance == null)
+        {
+            return;
+        }
+
+        if (UIManager.Instance.IsPanelOpen<SettingsPanel>())
+        {
+            UIManager.Instance.Close<SettingsPanel>();
+        }
+        else
+        {
+            UIManager.Instance.Open<SettingsPanel>();
+        }
     }
 
     private void RefreshText()

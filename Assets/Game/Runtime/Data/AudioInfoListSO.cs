@@ -10,7 +10,9 @@ namespace Game.Runtime.Data
 
         public AudioInf GetAudioInfo(AudioName audioName)
         {
-            return audioInfos.Find(x => x.audioName == audioName);
+            return audioInfos?.Find(
+                x => x != null && x.audioName == audioName
+            );
         }
     }
 
@@ -28,7 +30,54 @@ namespace Game.Runtime.Data
     public enum AudioName
     {
         None,
-        Click,
-        BGM,
+        BgmTitle,
+        BgmGameplay,
+        BgmBoss,
+        UiClick,
+        UiClose,
+        UiSlider,
+        SfxPlayerAttack,
+        SfxPlayerBloodthirst,
+        SfxPlayerVengeance,
+        SfxPlayerParasite,
+        SfxPlayerHit,
+        SfxPlayerDefendHit,
+        SfxItemWrench,
+        SfxItemMaiden,
+        SfxItemShield,
+        SfxItemPotion,
+        SfxPlayerFootstep,
+        SfxPlayerDeath,
+        UiDeathPanel,
+        SfxChickenAttack,
+        SfxChickenHit,
+        SfxOilDrink,
+        SfxOilAttack,
+        SfxOilHit,
+        SfxBoxHit,
+        SfxBoxExplode,
+        SfxHamsterAttack,
+        SfxHamsterHit,
+        SfxBossP1Attack,
+        SfxBossP1Charge,
+        SfxBossP1Hit,
+        SfxBossP2Attack,
+        SfxBossP2StealSuccess,
+        SfxBossP2StealFail,
+        SfxBossP2Hit,
+        UiGetItem,
+        UiGetCollectible,
+        UiGetSkill,
+        UiInteractRest,
+        UiInteractShop,
+        UiBuy,
+        UiSoldOut,
+        UiInteractOffering,
+        UiOfferingSuccess,
+        UiOfferingFail,
+        UiOfferingRefund,
+        UiNotEnough,
+        UiGreedFail,
+        UiGreedSuccess,
     }
 }

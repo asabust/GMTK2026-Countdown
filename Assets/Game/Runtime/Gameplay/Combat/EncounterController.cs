@@ -186,6 +186,10 @@ public class EncounterController : MonoBehaviour
         battleStatusWorldUI?.SetCombatVisible(true);
         CurrentEnemy.FacePlayer(playerController.GridPosition);
         EncounterStarted?.Invoke(enemy);
+        if (enemy.Definition.BehaviorType == EnemyBehaviorType.Boss)
+        {
+            AudioManager.Instance?.PlayMusic(AudioName.BgmBoss);
+        }
 
         if (!enemy.IsHealthResolved && enemy.Definition.CanRollHP)
         {
@@ -336,6 +340,8 @@ public class EncounterController : MonoBehaviour
         battleRound++;
         CurrentEnemy.ShowCombatInformation(battleRound);
         bool defeated = CurrentEnemy.ApplyDamage(struggleDamage);
+        AudioManager.Instance?.PlaySFX(AudioName.SfxPlayerAttack);
+        PlayEnemyHitSound(CurrentEnemy);
         playerRunStats?.CompletePlayerAction();
         playerSkills?.CompletePlayerAction();
         UIManager.Instance?.Close<BattleActionPanel>();
@@ -396,13 +402,15 @@ public class EncounterController : MonoBehaviour
         EnemyActor damagedEnemy,
         int damage,
         int hitCount,
-        int killRestore = 0
+        int killRestore = 0,
+        AudioName attackSound = AudioName.SfxPlayerAttack
     )
     {
         bool defeated = false;
         int resolvedHits = Mathf.Max(1, hitCount);
         for (int i = 0; i < resolvedHits && !defeated; i++)
         {
+            AudioManager.Instance?.PlaySFX(attackSound);
             if (playerController != null)
             {
                 yield return playerController.PlayAttackAnimation();
@@ -415,6 +423,7 @@ public class EncounterController : MonoBehaviour
             }
 
             defeated = damagedEnemy.ApplyDamage(damage);
+            PlayEnemyHitSound(damagedEnemy);
             yield return damagedEnemy.PlayHitFlash();
         }
 
@@ -467,6 +476,7 @@ public class EncounterController : MonoBehaviour
 
         int damageToPlayer = intentResolution.DamageToPlayer;
         bool playerStunned = false;
+        bool stoleItem = false;
         string resolutionDescription = intentResolution.Description;
         if (intentResolution.AttemptsItemSteal)
         {
@@ -475,6 +485,7 @@ public class EncounterController : MonoBehaviour
                     out CollectibleDefinition stolenItem
                 ))
             {
+                stoleItem = true;
                 resolutionDescription = GameLocalization.Get(
                     "enemy.action.item_stolen",
                     stolenItem.DisplayName
@@ -492,6 +503,7 @@ public class EncounterController : MonoBehaviour
                 );
             }
         }
+        PlayEnemyActionSound(actingEnemy, intentResolution, stoleItem);
 
         IncomingAttackResolution attackResolution =
             playerRunStats != null
@@ -505,6 +517,17 @@ public class EncounterController : MonoBehaviour
                     damageToPlayer
                 );
         bool playerTookDamage = attackResolution.FinalDamage > 0;
+        if (attackResolution.BlockedByShield > 0 ||
+            attackResolution.NegatedByHeart)
+        {
+            AudioManager.Instance?.PlaySFX(
+                AudioName.SfxPlayerDefendHit
+            );
+        }
+        else if (playerTookDamage)
+        {
+            AudioManager.Instance?.PlaySFX(AudioName.SfxPlayerHit);
+        }
         if (playerTookDamage)
         {
             numberResource.TakeDamage(
@@ -516,6 +539,10 @@ public class EncounterController : MonoBehaviour
         bool enemyDefeatedBySelfDamage =
             intentResolution.SelfDamage > 0 &&
             actingEnemy.ApplyDamage(intentResolution.SelfDamage);
+        if (intentResolution.SelfDamage > 0)
+        {
+            PlayEnemyHitSound(actingEnemy);
+        }
         if (intentResolution.NumberToSteal > 0 &&
             stolenNumber != intentResolution.NumberToSteal)
         {
@@ -714,6 +741,7 @@ public class EncounterController : MonoBehaviour
                 actingEnemy.ResolvedMaxHP
             );
         actingEnemy.PlaySpecialAnimation();
+        AudioManager.Instance?.PlaySFX(AudioName.SfxBoxExplode);
         actingEnemy.ShowIntentResolution($"负荷爆炸：-{explosionDamage}");
 
         IncomingAttackResolution attackResolution =
@@ -726,6 +754,17 @@ public class EncounterController : MonoBehaviour
                     explosionDamage
                 );
         bool playerTookDamage = attackResolution.FinalDamage > 0;
+        if (attackResolution.BlockedByShield > 0 ||
+            attackResolution.NegatedByHeart)
+        {
+            AudioManager.Instance?.PlaySFX(
+                AudioName.SfxPlayerDefendHit
+            );
+        }
+        else if (playerTookDamage)
+        {
+            AudioManager.Instance?.PlaySFX(AudioName.SfxPlayerHit);
+        }
         if (playerTookDamage)
         {
             numberResource.TakeDamage(
@@ -916,6 +955,7 @@ public class EncounterController : MonoBehaviour
         bool succeeded = GameRandom.Chance(effectiveChance);
         if (!succeeded)
         {
+            AudioManager.Instance?.PlaySFX(AudioName.UiGreedFail);
             if (isInitialGreed)
             {
                 consecutiveGreedSuccesses = 0;
@@ -937,6 +977,7 @@ public class EncounterController : MonoBehaviour
             return lockedRewardResult;
         }
 
+        AudioManager.Instance?.PlaySFX(AudioName.UiGreedSuccess);
         if (isInitialGreed)
         {
             consecutiveGreedFailures = 0;
@@ -1275,17 +1316,27 @@ public class EncounterController : MonoBehaviour
         UIManager.Instance?.Close<BattleActionPanel>();
         if (dealtDamage)
         {
+            AudioName attackSound = definition.SkillType switch
+            {
+                PlayerSkillType.Parasite => AudioName.SfxPlayerParasite,
+                PlayerSkillType.Revenge => AudioName.SfxPlayerVengeance,
+                _ => AudioName.SfxPlayerAttack
+            };
             enemyTurnRoutine = StartCoroutine(
                 ResolvePlayerAttackSequence(
                     attackedEnemy,
                     definition.BaseDamage,
                     hitCount,
-                    killRestore
+                    killRestore,
+                    attackSound
                 )
             );
         }
         else
         {
+            AudioManager.Instance?.PlaySFX(
+                AudioName.SfxPlayerBloodthirst
+            );
             enemyTurnRoutine = StartCoroutine(ResolveEnemyTurn());
         }
 
@@ -1383,6 +1434,7 @@ public class EncounterController : MonoBehaviour
         }
 
         int value = Mathf.Max(0, Mathf.RoundToInt(definition.EffectValue));
+        PlayItemSound(definition);
         switch (definition.EffectType)
         {
             case CollectibleEffectType.RestoreNumber:
@@ -1422,6 +1474,71 @@ public class EncounterController : MonoBehaviour
                 definition.DisplayName
             )
         );
+    }
+
+    private static void PlayItemSound(CollectibleDefinition definition)
+    {
+        AudioName sound = definition?.CollectibleId switch
+        {
+            "wrench" => AudioName.SfxItemWrench,
+            "girls_thoughts" => AudioName.SfxItemMaiden,
+            "guardian_shield" => AudioName.SfxItemShield,
+            "magic_potion" => AudioName.SfxItemPotion,
+            _ => AudioName.None
+        };
+        AudioManager.Instance?.PlaySFX(sound);
+    }
+
+    private static void PlayEnemyHitSound(EnemyActor enemy)
+    {
+        EnemyDefinition definition = enemy?.Definition;
+        AudioName sound = definition?.BehaviorType switch
+        {
+            EnemyBehaviorType.SmallChicken => AudioName.SfxChickenHit,
+            EnemyBehaviorType.DrunkenRaider => AudioName.SfxOilHit,
+            EnemyBehaviorType.HorrorBox => AudioName.SfxBoxHit,
+            EnemyBehaviorType.Hamster => AudioName.SfxHamsterHit,
+            EnemyBehaviorType.Boss when definition.BossPhase >= 2 =>
+                AudioName.SfxBossP2Hit,
+            EnemyBehaviorType.Boss => AudioName.SfxBossP1Hit,
+            _ => AudioName.None
+        };
+        AudioManager.Instance?.PlaySFX(sound);
+    }
+
+    private static void PlayEnemyActionSound(
+        EnemyActor enemy,
+        EnemyIntentResolution resolution,
+        bool stoleItem
+    )
+    {
+        EnemyDefinition definition = enemy?.Definition;
+        AudioName sound = definition?.BehaviorType switch
+        {
+            EnemyBehaviorType.SmallChicken => AudioName.SfxChickenAttack,
+            EnemyBehaviorType.DrunkenRaider
+                when enemy.CurrentIntent == EnemyIntentType.Special =>
+                AudioName.SfxOilDrink,
+            EnemyBehaviorType.DrunkenRaider => AudioName.SfxOilAttack,
+            EnemyBehaviorType.Hamster => AudioName.SfxHamsterAttack,
+            EnemyBehaviorType.Boss
+                when definition.BossPhase >= 2 &&
+                     resolution.AttemptsItemSteal &&
+                     stoleItem =>
+                AudioName.SfxBossP2StealSuccess,
+            EnemyBehaviorType.Boss
+                when definition.BossPhase >= 2 &&
+                     resolution.AttemptsItemSteal =>
+                AudioName.SfxBossP2StealFail,
+            EnemyBehaviorType.Boss when definition.BossPhase >= 2 =>
+                AudioName.SfxBossP2Attack,
+            EnemyBehaviorType.Boss
+                when enemy.CurrentIntent == EnemyIntentType.Charge =>
+                AudioName.SfxBossP1Charge,
+            EnemyBehaviorType.Boss => AudioName.SfxBossP1Attack,
+            _ => AudioName.None
+        };
+        AudioManager.Instance?.PlaySFX(sound);
     }
 
     private static BattleItemUseResult ItemResult(

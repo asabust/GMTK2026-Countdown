@@ -14,6 +14,8 @@ public enum UILayer
 
 public class UIManager : Singleton<UIManager>
 {
+    public static event Action<GameObject> PanelOpened;
+
     [Header("Roots")]
     public Transform backgroundRoot;
     public Transform normalRoot;
@@ -45,6 +47,7 @@ public class UIManager : Singleton<UIManager>
 
         panel.gameObject.SetActive(true);
         panel.OnOpen(data);
+        PanelOpened?.Invoke(panel.gameObject);
 
         panel.transform.SetAsLastSibling(); // 保证在最上层
         return (T) panel;

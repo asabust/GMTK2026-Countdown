@@ -281,6 +281,7 @@ public class BattleActionPanel : UIPanel
             : request.Attack?.Invoke() == true;
         if (!accepted)
         {
+            AudioManager.Instance?.PlaySFX(AudioName.UiNotEnough);
             ToastPanel.Show(GameLocalization.Get(
                 struggling
                     ? "battle.action.cannot_struggle"
@@ -555,6 +556,7 @@ public class BattleActionPanel : UIPanel
             return;
         }
 
+        AudioManager.Instance?.PlaySFX(AudioName.UiNotEnough);
         RefreshItemMenu();
     }
 
@@ -570,6 +572,7 @@ public class BattleActionPanel : UIPanel
         ToastPanel.Show(result.Message);
         if (!result.Succeeded && request != null)
         {
+            AudioManager.Instance?.PlaySFX(AudioName.UiNotEnough);
             RefreshPrimaryMenu();
         }
     }

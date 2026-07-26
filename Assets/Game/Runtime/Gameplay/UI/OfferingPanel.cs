@@ -153,6 +153,7 @@ public sealed class OfferingPanel : UIPanel
                     _ => GameLocalization.Get("offering.error.amount")
                 }
             );
+            AudioManager.Instance?.PlaySFX(AudioName.UiOfferingFail);
             resolved = true;
             SetInputInteractable(false);
             request.ContinueAfterResult?.Invoke();
@@ -162,6 +163,13 @@ public sealed class OfferingPanel : UIPanel
         resolved = true;
         SetInputInteractable(false);
         ToastPanel.Show(FormatResult(result));
+        AudioManager.Instance?.PlaySFX(
+            result.Outcome == OfferingOutcomeType.FullReturn
+                ? AudioName.UiOfferingRefund
+                : result.Outcome == OfferingOutcomeType.LoseAll
+                    ? AudioName.UiOfferingFail
+                    : AudioName.UiOfferingSuccess
+        );
         request.ContinueAfterResult?.Invoke();
     }
 

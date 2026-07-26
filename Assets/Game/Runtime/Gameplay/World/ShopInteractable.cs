@@ -1,3 +1,4 @@
+using Game.Runtime.Data;
 using UnityEngine;
 
 public sealed class ShopOffer
@@ -48,6 +49,7 @@ public sealed class ShopInteractable : WorldInteractable
         context = interaction;
         inventory = interaction.Player.GetComponent<PlayerInventory>();
         submitted = false;
+        AudioManager.Instance?.PlaySFX(AudioName.UiInteractShop);
         if (inventory == null)
         {
             Debug.LogError("Shop requires PlayerInventory on the player.", this);

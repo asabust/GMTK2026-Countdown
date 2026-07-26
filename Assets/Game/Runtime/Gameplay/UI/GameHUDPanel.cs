@@ -429,5 +429,18 @@ public class GameHUDPanel : UIPanel
     private void HandleSettingsClicked()
     {
         SettingsRequested?.Invoke();
+        if (UIManager.Instance == null)
+        {
+            return;
+        }
+
+        if (UIManager.Instance.IsPanelOpen<SettingsPanel>())
+        {
+            UIManager.Instance.Close<SettingsPanel>();
+        }
+        else
+        {
+            UIManager.Instance.Open<SettingsPanel>();
+        }
     }
 }
