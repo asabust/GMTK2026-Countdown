@@ -949,7 +949,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 93ba5789df174ff29904fb6269924d3f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  initialValue: 60
+  initialValue: 100
   minimumValue: -1
   maximumValue: 100
 --- !u!114 &1104470235
@@ -964,13 +964,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3d9f29020e7f44fdbd59aa366a478247, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  basicAttackCost: 1
+  basicAttackCost: 2
   basicAttackDamage: 3
   struggleDamage: 1
   enemyActionDuration: 0.45
   autoPassDelay: 0.7
   greedySuccessChance: 0.5
-  greedyMultiplier: 2.5
+  greedyMultiplier: 2.2
 --- !u!114 &1104470236
 MonoBehaviour:
   m_ObjectHideFlags: 0

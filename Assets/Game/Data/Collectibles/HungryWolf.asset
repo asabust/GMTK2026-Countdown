@@ -14,13 +14,12 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   collectibleId: hungry_wolf
   displayName: "\u997F\u72FC"
-  description: "\u8D2A\u5A6A\u6210\u529F\u65F6\u83B7\u53D6\u7684\u5956\u52B1\u53D8\u4E3A
-    2.5 \u500D\u3002"
+  description: "\u8D2A\u5A6A\u6210\u529F\u65F6\u83B7\u53D6\u7684\u5956\u52B1\u53D8\u4E3A2.4\u500D\u3002"
   icon: {fileID: 21300000, guid: 978d4746f52654d5f868e2753b6e152e, type: 3}
   kind: 1
   maximumStacks: 1
   inventoryOrder: 2
   effectType: 3
-  effectValue: 2.5
+  effectValue: 2.4
   effectDuration: 0
   relicGreedBattleDurability: 3
