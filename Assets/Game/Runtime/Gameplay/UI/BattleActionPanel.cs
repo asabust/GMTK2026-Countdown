@@ -106,7 +106,6 @@ public class BattleActionPanel : UIPanel
 {
     [Header("Shared")]
     [SerializeField] private TMP_Text previewText;
-    [SerializeField] private TMP_Text feedbackText;
 
     [Header("Primary menu")]
     [SerializeField] private GameObject primaryMenu;
@@ -114,6 +113,9 @@ public class BattleActionPanel : UIPanel
     [SerializeField] private TMP_Text attackButtonLabel;
     [SerializeField] private Button itemButton;
     [SerializeField] private TMP_Text itemButtonLabel;
+    [SerializeField] private GameObject skillDescriptionFrame;
+    [SerializeField] private TMP_Text skillNameText;
+    [SerializeField] private TMP_Text skillDescriptionText;
     private readonly Button[] skillButtons = new Button[3];
     private readonly Image[] skillButtonIcons = new Image[3];
     private readonly TMP_Text[] skillButtonLabels = new TMP_Text[3];
@@ -126,6 +128,7 @@ public class BattleActionPanel : UIPanel
     [SerializeField] private Image[] itemSlotIcons = new Image[4];
     [SerializeField] private TMP_Text[] itemSlotLabels = new TMP_Text[4];
     [SerializeField] private TMP_Text[] itemSlotCounts = new TMP_Text[4];
+    [SerializeField] private GameObject itemDescriptionFrame;
     [SerializeField] private TMP_Text itemNameText;
     [SerializeField] private TMP_Text itemDescriptionText;
     [SerializeField] private Button backButton;
@@ -176,10 +179,27 @@ public class BattleActionPanel : UIPanel
             skillButtons[i]?.onClick.AddListener(
                 () => HandlePrimarySkillClicked(capturedIndex)
             );
+            BindSkillHover(
+                skillButtonIcons[i],
+                () => ShowSkillDescription(
+                    capturedIndex,
+                    skillButtons[capturedIndex]?.transform as RectTransform
+                )
+            );
             skillButtons[i]?.gameObject.SetActive(false);
         }
 
         attackButton?.onClick.AddListener(HandlePrimaryAction);
+        Image attackButtonIcon = FindChildComponent<Image>(
+            attackButton?.transform,
+            "Icon"
+        );
+        BindSkillHover(
+            attackButtonIcon,
+            () => ShowPrimaryActionDescription(
+                attackButton?.transform as RectTransform
+            )
+        );
         itemButton?.onClick.AddListener(ShowItemMenu);
         backButton?.onClick.AddListener(ShowPrimaryMenu);
 
@@ -189,9 +209,31 @@ public class BattleActionPanel : UIPanel
             itemSlotButtons[i]?.onClick.AddListener(
                 () => HandleItemClicked(capturedIndex)
             );
+            Image icon = itemSlotIcons.Length > i
+                ? itemSlotIcons[i]
+                : null;
+            if (icon == null)
+            {
+                continue;
+            }
+
+            icon.raycastTarget = true;
             BattleItemSlotSelection relay =
-                itemSlotButtons[i]?.GetComponent<BattleItemSlotSelection>();
-            relay?.Bind(() => SelectItem(capturedIndex));
+                icon.GetComponent<BattleItemSlotSelection>();
+            if (relay == null)
+            {
+                relay = icon.gameObject.AddComponent<
+                    BattleItemSlotSelection
+                >();
+            }
+            relay.Bind(
+                () => SelectItem(
+                    capturedIndex,
+                    itemSlotButtons[capturedIndex]?.transform
+                        as RectTransform
+                ),
+                HideItemDescription
+            );
         }
     }
 
@@ -208,11 +250,7 @@ public class BattleActionPanel : UIPanel
             request.Skills.Changed += HandleSkillsChanged;
         }
 
-        if (feedbackText != null)
-        {
-            feedbackText.text = string.Empty;
-        }
-
+        HideSkillDescription();
         UILocalization.SetButtonText(
             backButton,
             "battle.player.button.back"
@@ -227,6 +265,7 @@ public class BattleActionPanel : UIPanel
         displayedItems.Clear();
         displayedSkills.Clear();
         selectedItemIndex = -1;
+        HideSkillDescription();
     }
 
     private void HandlePrimaryAction()
@@ -240,13 +279,13 @@ public class BattleActionPanel : UIPanel
         bool accepted = struggling
             ? request.Struggle?.Invoke() == true
             : request.Attack?.Invoke() == true;
-        if (!accepted && feedbackText != null)
+        if (!accepted)
         {
-            feedbackText.text = GameLocalization.Get(
+            ToastPanel.Show(GameLocalization.Get(
                 struggling
                     ? "battle.action.cannot_struggle"
                     : "battle.action.insufficient"
-            );
+            ));
         }
 
         RefreshPrimaryMenu();
@@ -255,6 +294,7 @@ public class BattleActionPanel : UIPanel
     private void ShowPrimaryMenu()
     {
         selectedItemIndex = -1;
+        HideSkillDescription();
         primaryMenu?.SetActive(true);
         itemMenu?.SetActive(false);
         RefreshPrimaryMenu();
@@ -269,10 +309,8 @@ public class BattleActionPanel : UIPanel
 
         primaryMenu?.SetActive(false);
         itemMenu?.SetActive(true);
-        if (feedbackText != null)
-        {
-            feedbackText.text = string.Empty;
-        }
+        HideSkillDescription();
+        HideItemDescription();
         RefreshItemMenu();
     }
 
@@ -391,26 +429,7 @@ public class BattleActionPanel : UIPanel
             }
         }
 
-        if (displayedItems.Count > 0)
-        {
-            SelectItem(Mathf.Clamp(selectedItemIndex, 0, displayedItems.Count - 1));
-        }
-        else
-        {
-            selectedItemIndex = -1;
-            if (itemNameText != null)
-            {
-                itemNameText.text = GameLocalization.Get(
-                    "battle.items.none"
-                );
-            }
-            if (itemDescriptionText != null)
-            {
-                itemDescriptionText.text = GameLocalization.Get(
-                    "battle.items.empty_description"
-                );
-            }
-        }
+        HideItemDescription();
     }
 
     private void RefreshPrimarySkillButtons()
@@ -466,7 +485,10 @@ public class BattleActionPanel : UIPanel
         }
     }
 
-    private void SelectItem(int index)
+    private void SelectItem(
+        int index,
+        RectTransform sourceButton
+    )
     {
         if (index < 0 || index >= displayedItems.Count)
         {
@@ -476,6 +498,11 @@ public class BattleActionPanel : UIPanel
         selectedItemIndex = index;
         CollectibleDefinition definition = displayedItems[index].Definition;
         BattleItemUseResult validation = request.ValidateItem(definition);
+        itemDescriptionFrame?.SetActive(true);
+        PositionDescriptionFrame(
+            itemDescriptionFrame,
+            sourceButton
+        );
         if (itemNameText != null)
         {
             itemNameText.text = definition.DisplayName;
@@ -488,6 +515,26 @@ public class BattleActionPanel : UIPanel
         }
     }
 
+    private void HideItemDescription()
+    {
+        selectedItemIndex = -1;
+        itemDescriptionFrame?.SetActive(false);
+        if (itemNameText != null)
+        {
+            itemNameText.text = displayedItems.Count == 0
+                ? GameLocalization.Get("battle.items.none")
+                : string.Empty;
+        }
+        if (itemDescriptionText != null)
+        {
+            itemDescriptionText.text = displayedItems.Count == 0
+                ? GameLocalization.Get(
+                    "battle.items.empty_description"
+                )
+                : string.Empty;
+        }
+    }
+
     private void HandleItemClicked(int index)
     {
         if (request == null || index < 0 || index >= displayedItems.Count)
@@ -497,10 +544,7 @@ public class BattleActionPanel : UIPanel
 
         CollectibleDefinition definition = displayedItems[index].Definition;
         BattleItemUseResult result = request.UseItem(definition);
-        if (feedbackText != null)
-        {
-            feedbackText.text = result.Message;
-        }
+        ToastPanel.Show(result.Message);
 
         if (result.Succeeded)
         {
@@ -523,14 +567,151 @@ public class BattleActionPanel : UIPanel
 
         SkillDefinition definition = displayedSkills[index].Definition;
         BattleSkillUseResult result = request.UseSkill(definition);
-        if (feedbackText != null)
-        {
-            feedbackText.text = result.Message;
-        }
+        ToastPanel.Show(result.Message);
         if (!result.Succeeded && request != null)
         {
             RefreshPrimaryMenu();
         }
+    }
+
+    private void ShowPrimaryActionDescription(RectTransform sourceButton)
+    {
+        if (request?.Enemy == null)
+        {
+            return;
+        }
+
+        bool struggling = request.CanStruggle?.Invoke() == true;
+        if (struggling)
+        {
+            int damage = request.StruggleDamage;
+            int remainingHP = Mathf.Max(
+                0,
+                request.Enemy.CurrentHP - damage
+            );
+            ShowSkillDescription(
+                GameLocalization.Get("battle.action.struggle"),
+                GameLocalization.Get(
+                    "battle.action.struggle_preview",
+                    0,
+                    damage,
+                    request.Enemy.CurrentHP,
+                    remainingHP
+                ),
+                sourceButton
+            );
+            return;
+        }
+
+        ShowSkillDescription(
+            GameLocalization.Get("skill.basic_attack.name"),
+            GameLocalization.Get("skill.basic_attack.description"),
+            sourceButton
+        );
+    }
+
+    private void ShowSkillDescription(
+        int index,
+        RectTransform sourceButton
+    )
+    {
+        if (index < 0 || index >= displayedSkills.Count)
+        {
+            HideSkillDescription();
+            return;
+        }
+
+        SkillDefinition definition =
+            displayedSkills[index]?.Definition;
+        if (definition == null)
+        {
+            HideSkillDescription();
+            return;
+        }
+
+        ShowSkillDescription(
+            definition.DisplayName,
+            definition.Description,
+            sourceButton
+        );
+    }
+
+    private void ShowSkillDescription(
+        string skillName,
+        string skillDescription,
+        RectTransform sourceButton
+    )
+    {
+        if (skillNameText != null)
+        {
+            skillNameText.text = skillName ?? string.Empty;
+        }
+        if (skillDescriptionText != null)
+        {
+            skillDescriptionText.text =
+                skillDescription ?? string.Empty;
+        }
+        skillDescriptionFrame?.SetActive(true);
+        PositionSkillDescription(sourceButton);
+    }
+
+    private void HideSkillDescription()
+    {
+        skillDescriptionFrame?.SetActive(false);
+    }
+
+    private void BindSkillHover(
+        Graphic hoverArea,
+        Action show
+    )
+    {
+        if (hoverArea == null)
+        {
+            return;
+        }
+
+        hoverArea.raycastTarget = true;
+        BattleSkillHoverTarget target =
+            hoverArea.GetComponent<BattleSkillHoverTarget>();
+        if (target == null)
+        {
+            target = hoverArea.gameObject.AddComponent<
+                BattleSkillHoverTarget
+            >();
+        }
+        target.Bind(show, HideSkillDescription);
+    }
+
+    private void PositionSkillDescription(RectTransform sourceButton)
+    {
+        PositionDescriptionFrame(
+            skillDescriptionFrame,
+            sourceButton
+        );
+    }
+
+    private void PositionDescriptionFrame(
+        GameObject descriptionFrame,
+        RectTransform sourceButton
+    )
+    {
+        RectTransform frame =
+            descriptionFrame?.transform as RectTransform;
+        RectTransform parent = frame?.parent as RectTransform;
+        if (frame == null || parent == null || sourceButton == null)
+        {
+            return;
+        }
+
+        Vector3[] corners = new Vector3[4];
+        sourceButton.GetWorldCorners(corners);
+        Vector3 topCenter = (corners[1] + corners[2]) * 0.5f;
+        float gap = 8f;
+        Vector3 offset = parent.TransformVector(
+            Vector3.up * (frame.rect.height * 0.5f + gap)
+        );
+        frame.position = topCenter + offset;
+        frame.SetAsLastSibling();
     }
 
     private void HandleInventoryChanged()

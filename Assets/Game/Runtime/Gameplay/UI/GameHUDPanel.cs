@@ -6,6 +6,21 @@ using UnityEngine.UI;
 
 public class GameHUDPanel : UIPanel
 {
+    public static GameHUDPanel Active { get; private set; }
+
+    private readonly struct RelicSlotData
+    {
+        public RelicSlotData(CollectibleStack stack, int copyIndex)
+        {
+            Stack = stack;
+            CopyIndex = copyIndex;
+        }
+
+        public CollectibleStack Stack { get; }
+        public int CopyIndex { get; }
+        public CollectibleDefinition Definition => Stack?.Definition;
+    }
+
     [Header("Number")]
     [SerializeField] private TMP_Text currentNumberText;
     [SerializeField] private Image numberFill;
@@ -47,6 +62,7 @@ public class GameHUDPanel : UIPanel
 
     public override void OnOpen(object data = null)
     {
+        Active = this;
         BindNumberResource(NumberResource.Instance);
         BindInventory(
             NumberResource.Instance != null
@@ -57,6 +73,10 @@ public class GameHUDPanel : UIPanel
 
     public override void OnClose()
     {
+        if (Active == this)
+        {
+            Active = null;
+        }
         BindNumberResource(null);
         BindInventory(null);
         inventoryTooltip?.Hide();
@@ -65,6 +85,10 @@ public class GameHUDPanel : UIPanel
 
     private void OnDestroy()
     {
+        if (Active == this)
+        {
+            Active = null;
+        }
         settingsButton?.onClick.RemoveListener(HandleSettingsClicked);
         BindNumberResource(null);
         BindInventory(null);
@@ -118,7 +142,7 @@ public class GameHUDPanel : UIPanel
     {
         List<CollectibleStack> items =
             playerInventory?.GetOrderedItemStacks() ?? new List<CollectibleStack>();
-        List<CollectibleDefinition> relics = new();
+        List<RelicSlotData> relics = new();
         if (playerInventory != null)
         {
             foreach (CollectibleStack stack in playerInventory.Stacks)
@@ -128,13 +152,13 @@ public class GameHUDPanel : UIPanel
                 {
                     for (int i = 0; i < stack.Count; i++)
                     {
-                        relics.Add(stack.Definition);
+                        relics.Add(new RelicSlotData(stack, i));
                     }
                 }
             }
             relics.Sort((left, right) =>
-                left.InventoryOrder.CompareTo(
-                    right.InventoryOrder
+                left.Definition.InventoryOrder.CompareTo(
+                    right.Definition.InventoryOrder
                 ));
         }
 
@@ -143,13 +167,15 @@ public class GameHUDPanel : UIPanel
     }
 
     private void RefreshRelicSlots(
-        IReadOnlyList<CollectibleDefinition> relics
+        IReadOnlyList<RelicSlotData> relics
     )
     {
         for (int i = 0; i < relicIcons.Length; i++)
         {
-            CollectibleDefinition definition =
+            RelicSlotData? slot =
                 i < relics.Count ? relics[i] : null;
+            CollectibleStack stack = slot?.Stack;
+            CollectibleDefinition definition = slot?.Definition;
             if (relicIcons[i] != null)
             {
                 relicIcons[i].sprite = definition?.Icon;
@@ -157,7 +183,12 @@ public class GameHUDPanel : UIPanel
             }
             if (relicCounts.Length > i && relicCounts[i] != null)
             {
-                relicCounts[i].text = string.Empty;
+                relicCounts[i].text =
+                    stack != null &&
+                    definition.RelicGreedBattleDurability > 0
+                    ? $"{stack.GetRemainingGreedBattles(slot.Value.CopyIndex)}/" +
+                      $"{definition.RelicGreedBattleDurability}"
+                    : string.Empty;
             }
 
             HoverTooltipTarget target =
@@ -291,6 +322,25 @@ public class GameHUDPanel : UIPanel
 
         pendingChanges.Enqueue(change);
         TryPlayNextDelta();
+    }
+
+    public void ShowWorldDelta(
+        int delta,
+        NumberChangeReason reason,
+        Vector3 worldPosition
+    )
+    {
+        if (delta == 0)
+        {
+            return;
+        }
+
+        ShowDelta(new NumberChange(
+            0,
+            delta,
+            reason,
+            worldPosition
+        ));
     }
 
     private void TryPlayNextDelta()

@@ -95,6 +95,26 @@ public sealed class PlayerSkillController : MonoBehaviour
         Changed?.Invoke();
     }
 
+    public void ClearCooldowns()
+    {
+        bool changed = false;
+        foreach (LearnedSkillState state in learnedSkills)
+        {
+            if (state == null || state.CooldownRemaining <= 0)
+            {
+                continue;
+            }
+
+            state.SetCooldown(0);
+            changed = true;
+        }
+
+        if (changed)
+        {
+            Changed?.Invoke();
+        }
+    }
+
     private LearnedSkillState FindState(SkillDefinition definition)
     {
         if (definition == null)

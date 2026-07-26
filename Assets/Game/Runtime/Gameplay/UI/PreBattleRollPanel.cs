@@ -21,7 +21,6 @@ public class PreBattleRollPanel : UIPanel
     [SerializeField] private TMP_Text enemyNameText;
     [SerializeField] private TMP_Text healthRangeText;
     [SerializeField] private TMP_Text rewardText;
-    [SerializeField] private TMP_Text stableHealthText;
     [SerializeField] private Button rollButton;
     [SerializeField] private Button stableButton;
 
@@ -48,11 +47,14 @@ public class PreBattleRollPanel : UIPanel
 
         UILocalization.SetButtonText(
             rollButton,
-            "battle.roll.button.roll"
+            "battle.roll.button.roll",
+            definition.MinHP,
+            definition.MaxHP
         );
         UILocalization.SetButtonText(
             stableButton,
-            "battle.roll.button.stable"
+            "battle.roll.button.stable",
+            definition.StableHP
         );
         enemyNameText.text = GameLocalization.Get(
             "battle.roll.encounter",
@@ -61,16 +63,11 @@ public class PreBattleRollPanel : UIPanel
         healthRangeText.text = GameLocalization.Get(
             "battle.roll.health_range_with_description",
             definition.Description,
-            definition.MinHP,
-            definition.MaxHP
+            definition.DisplayName
         );
         rewardText.text = GameLocalization.Get(
             "battle.roll.reward",
             definition.RewardPreview
-        );
-        stableHealthText.text = GameLocalization.Get(
-            "battle.roll.stable_health",
-            definition.StableHP
         );
         SetButtonsInteractable(true);
     }
