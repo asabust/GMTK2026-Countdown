@@ -15,10 +15,10 @@ MonoBehaviour:
   shopId: default_shop
   products:
   - collectible: {fileID: 11400000, guid: 47840a1cb68e44f43b0c652588562525, type: 2}
-    price: 3
+    price: 2
     stock: 1
   - collectible: {fileID: 11400000, guid: 47840a1cb68e44f43b0c652588562525, type: 2}
-    price: 3
+    price: 2
     stock: 1
   - collectible: {fileID: 11400000, guid: aaa2510ef20454769b4c818cdaf1afaa, type: 2}
     price: 4

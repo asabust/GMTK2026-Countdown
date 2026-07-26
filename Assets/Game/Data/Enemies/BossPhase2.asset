@@ -14,13 +14,13 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   enemyId: BossPhase2
   displayName: "\u8870\u53F9\u4E4B\u949F\xB7\u4E8C\u9636\u6BB5"
-  minHP: 25
-  maxHP: 25
+  minHP: 15
+  maxHP: 15
   canRollHP: 0
-  fixedHP: 30
+  fixedHP: 15
   rewardNumber: 0
   rewardMode: 0
-  attackDamage: 7
+  attackDamage: 3
   specialDamage: 0
   behaviorType: 4
   intentSequence: 010000000100000005000000
@@ -36,4 +36,4 @@ MonoBehaviour:
   itemDropCount: 0
   bossPhase: 2
   bossNextPhase: {fileID: 0}
-  bossNoItemDamage: 5
+  bossNoItemDamage: 4
