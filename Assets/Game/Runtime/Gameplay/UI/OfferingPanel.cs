@@ -1,4 +1,5 @@
 using System;
+using Game.Runtime.Data;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -61,8 +62,15 @@ public sealed class OfferingPanel : UIPanel
         request = data as OfferingRequest;
         resolved = false;
         if (feedbackText != null) feedbackText.text = string.Empty;
-        if (confirmButtonText != null) confirmButtonText.text = "确认供奉";
+        if (confirmButtonText != null)
+            confirmButtonText.text = GameLocalization.Get(
+                "offering.button.confirm"
+            );
         if (leaveButton != null) leaveButton.gameObject.SetActive(true);
+        UILocalization.SetButtonText(
+            leaveButton,
+            "offering.button.leave"
+        );
 
         if (request?.Number == null)
         {
@@ -84,9 +92,11 @@ public sealed class OfferingPanel : UIPanel
         SetInputInteractable(canOffer);
         if (dialogueText != null)
         {
-            dialogueText.text = canOffer
-                ? "选择你要供奉的数字。"
-                : "你已没有可以供奉的数字，正处于濒死状态。";
+            dialogueText.text = GameLocalization.Get(
+                canOffer
+                    ? "offering.prompt"
+                    : "offering.no_number"
+            );
         }
         RefreshAmount();
     }
@@ -145,8 +155,12 @@ public sealed class OfferingPanel : UIPanel
         if (previewText != null)
         {
             previewText.text = maximum > 0
-                ? $"供奉后：{current} > {current - amount}"
-                : "当前没有可以供奉的数字";
+                ? GameLocalization.Get(
+                    "offering.preview",
+                    current,
+                    current - amount
+                )
+                : GameLocalization.Get("offering.none_available");
         }
     }
 
@@ -171,10 +185,10 @@ public sealed class OfferingPanel : UIPanel
                 feedbackText.text = result?.Status switch
                 {
                     OfferingResolutionStatus.NumberInsufficient =>
-                        "数字不足，无法完成供奉。",
+                        GameLocalization.Get("offering.error.insufficient"),
                     OfferingResolutionStatus.InvalidConfiguration =>
-                        "供奉配置无效，请检查结果概率。",
-                    _ => "供奉数字必须至少为 1，且不能超过当前数字。"
+                        GameLocalization.Get("offering.error.configuration"),
+                    _ => GameLocalization.Get("offering.error.amount")
                 };
             }
             RefreshAmount();
@@ -185,11 +199,16 @@ public sealed class OfferingPanel : UIPanel
         SetInputInteractable(false);
         if (leaveButton != null) leaveButton.gameObject.SetActive(false);
         if (confirmButton != null) confirmButton.interactable = true;
-        if (confirmButtonText != null) confirmButtonText.text = "继续";
-        if (dialogueText != null) dialogueText.text = "供奉结果";
+        if (confirmButtonText != null)
+            confirmButtonText.text = GameLocalization.Get("common.continue");
+        if (dialogueText != null)
+            dialogueText.text = GameLocalization.Get("offering.result_title");
         if (feedbackText != null) feedbackText.text = FormatResult(result);
         if (amountText != null)
-            amountText.text = $"当前数字：{result.FinalNumber}";
+            amountText.text = GameLocalization.Get(
+                "common.current_number",
+                result.FinalNumber
+            );
         if (previewText != null) previewText.text = string.Empty;
     }
 
@@ -200,14 +219,26 @@ public sealed class OfferingPanel : UIPanel
             OfferingOutcomeType.RandomItem =>
                 FormatItemResult(result.Item, result.ItemAddResult),
             OfferingOutcomeType.LoseAll =>
-                $"供奉没有得到回报，失去了 {result.OfferedAmount} 点数字。",
+                GameLocalization.Get(
+                    "offering.result.lose_all",
+                    result.OfferedAmount
+                ),
             OfferingOutcomeType.AttackIncrease =>
-                $"本局基础攻击力提高 {result.AttackIncrease} 点。",
+                GameLocalization.Get(
+                    "offering.result.attack",
+                    result.AttackIncrease
+                ),
             OfferingOutcomeType.DoubleReturn =>
-                $"获得双倍返还：{result.ReturnedAmount} 点数字。",
+                GameLocalization.Get(
+                    "offering.result.double",
+                    result.ReturnedAmount
+                ),
             OfferingOutcomeType.FullReturn =>
-                $"祭坛返还了供奉的 {result.ReturnedAmount} 点数字。",
-            _ => "供奉已经完成。"
+                GameLocalization.Get(
+                    "offering.result.return",
+                    result.ReturnedAmount
+                ),
+            _ => GameLocalization.Get("offering.result.complete")
         };
     }
 
@@ -216,15 +247,18 @@ public sealed class OfferingPanel : UIPanel
         InventoryAddResult result
     )
     {
-        string itemName = item != null ? item.DisplayName : "未知道具";
+        string itemName = item != null
+            ? item.DisplayName
+            : GameLocalization.Get("common.unknown_item");
         return result switch
         {
-            InventoryAddResult.Success => $"获得了道具：{itemName}。",
+            InventoryAddResult.Success =>
+                GameLocalization.Get("offering.item.success", itemName),
             InventoryAddResult.MaximumStacksReached =>
-                $"{itemName} 已达到最大数量，本次奖励已放弃。",
+                GameLocalization.Get("offering.item.maximum", itemName),
             InventoryAddResult.ItemSlotsFull =>
-                "道具栏已满，本次奖励已放弃。",
-            _ => "没有可用的供奉道具奖励，请检查配置。"
+                GameLocalization.Get("offering.item.inventory_full"),
+            _ => GameLocalization.Get("offering.item.invalid")
         };
     }
 

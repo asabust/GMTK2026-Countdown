@@ -1,3 +1,4 @@
+using Game.Runtime.Data;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -56,7 +57,10 @@ public sealed class PlayerBattleStatusWorldUI : MonoBehaviour
             shieldIcon,
             hasShield,
             hasShield
-                ? $"护盾 {runStats.NextEnemyPhaseShield}"
+                ? GameLocalization.Get(
+                    "battle.status.shield",
+                    runStats.NextEnemyPhaseShield
+                )
                 : string.Empty
         );
         ConfigureIcon(

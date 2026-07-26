@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Game.Runtime.Data;
 using UnityEngine;
 
 public enum EnemyBehaviorType
@@ -72,7 +73,17 @@ public class EnemyDefinition : ScriptableObject
     [SerializeField, Min(0)] private int bossNoItemDamage = 5;
 
     public string EnemyId => enemyId;
-    public string DisplayName => displayName;
+    private string LocalizationId =>
+        behaviorType == EnemyBehaviorType.Boss ? "Boss" : enemyId;
+
+    public string DisplayName => GameLocalization.GetOrDefault(
+        $"enemy.{LocalizationId}.name",
+        displayName
+    );
+    public string Description => GameLocalization.GetOrDefault(
+        $"enemy.{LocalizationId}.description",
+        string.Empty
+    );
     public int MinHP => minHP;
     public int MaxHP => maxHP;
     public bool CanRollHP => canRollHP;
@@ -99,14 +110,21 @@ public class EnemyDefinition : ScriptableObject
 
     public string RewardPreview =>
         behaviorType == EnemyBehaviorType.Boss
-            ? "无掉落"
+            ? GameLocalization.Get("enemy.reward.none")
             : rewardMode switch
             {
-                EnemyRewardMode.TurnScaled => "生命×80%～45%",
+                EnemyRewardMode.TurnScaled =>
+                    GameLocalization.Get("enemy.reward.turn_scaled"),
                 EnemyRewardMode.HealthScaled =>
-                    $"生命×{Mathf.RoundToInt(healthRewardMultiplier * 100f)}%" +
+                    GameLocalization.Get(
+                        "enemy.reward.health_scaled",
+                        Mathf.RoundToInt(healthRewardMultiplier * 100f)
+                    ) +
                     (itemDropCount > 0
-                        ? $" + 道具×{itemDropCount}"
+                        ? GameLocalization.Get(
+                            "enemy.reward.items",
+                            itemDropCount
+                        )
                         : string.Empty),
                 _ => rewardNumber.ToString()
             };

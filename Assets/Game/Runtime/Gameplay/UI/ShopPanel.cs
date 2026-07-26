@@ -1,4 +1,5 @@
 using System;
+using Game.Runtime.Data;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -119,6 +120,12 @@ public sealed class ShopPanel : UIPanel
         selectedIndex = -1;
         if (feedbackText != null) feedbackText.text = string.Empty;
         if (leaveButton != null) leaveButton.gameObject.SetActive(true);
+        UILocalization.SetButtonText(
+            leaveButton,
+            exchangeRequest != null
+                ? "exchange.button.leave"
+                : "shop.button.leave"
+        );
 
         if (request == null && exchangeRequest == null)
         {
@@ -190,14 +197,17 @@ public sealed class ShopPanel : UIPanel
         {
             feedbackText.text = result switch
             {
-                ShopPurchaseResult.Success => "购买成功",
+                ShopPurchaseResult.Success =>
+                    GameLocalization.Get("shop.feedback.purchase_success"),
                 ShopPurchaseResult.NumberInsufficient =>
-                    "数字不足，购买后不能低于 0",
-                ShopPurchaseResult.ItemSlotsFull => "道具栏已满，无法购买",
+                    GameLocalization.Get("shop.feedback.insufficient"),
+                ShopPurchaseResult.ItemSlotsFull =>
+                    GameLocalization.Get("shop.purchase.inventory_full"),
                 ShopPurchaseResult.MaximumStacksReached =>
                     GetMaximumStacksMessage(),
-                ShopPurchaseResult.SoldOut => "这件商品已经售罄",
-                _ => "当前无法购买"
+                ShopPurchaseResult.SoldOut =>
+                    GameLocalization.Get("shop.feedback.sold_out"),
+                _ => GameLocalization.Get("shop.purchase.unavailable")
             };
         }
         RefreshOffers();
@@ -212,8 +222,8 @@ public sealed class ShopPanel : UIPanel
             ? request.Offers[selectedIndex]
             : null;
         return offer?.Collectible?.Kind == CollectibleKind.Item
-            ? "该道具已达到最大数量"
-            : "该藏品已达到最大层数";
+            ? GameLocalization.Get("shop.purchase.item_maximum")
+            : GameLocalization.Get("shop.purchase.relic_maximum");
     }
 
     private void Leave()
@@ -242,7 +252,9 @@ public sealed class ShopPanel : UIPanel
             view.icon.enabled = offer.Collectible.Icon != null;
             view.nameText.text = offer.Collectible.DisplayName;
             view.priceText.text = offer.Price.ToString();
-            view.stateText.text = offer.IsSoldOut ? "售罄" : string.Empty;
+            view.stateText.text = offer.IsSoldOut
+                ? GameLocalization.Get("shop.state.sold_out")
+                : string.Empty;
             view.selectButton.interactable = !submitted && !offer.IsSoldOut;
         }
     }
@@ -265,19 +277,28 @@ public sealed class ShopPanel : UIPanel
         int after = current - offer.Price;
         if (dialogueText != null)
         {
-            string kind = offer.Collectible.Kind == CollectibleKind.Relic
-                ? "藏品"
-                : "道具";
-            dialogueText.text =
-                $"【{kind}】{offer.Collectible.DisplayName}\n" +
-                $"{offer.Collectible.Description}\n数字：{current} > {after}";
+            string kind = GameLocalization.Get(
+                offer.Collectible.Kind == CollectibleKind.Relic
+                    ? "common.relic"
+                    : "common.item"
+            );
+            dialogueText.text = GameLocalization.Get(
+                "shop.product_description",
+                kind,
+                offer.Collectible.DisplayName,
+                offer.Collectible.Description,
+                current,
+                after
+            );
         }
 
         bool affordable = request.Number?.CanSpend(offer.Price) == true;
         if (buyButton != null)
             buyButton.interactable = !submitted && !offer.IsSoldOut && affordable;
         if (buyButtonText != null)
-            buyButtonText.text = offer.IsSoldOut ? "已售罄" : $"购买  {offer.Price}";
+            buyButtonText.text = offer.IsSoldOut
+                ? GameLocalization.Get("shop.button.sold_out")
+                : GameLocalization.Get("shop.buy_for", offer.Price);
     }
 
     private void RefreshNumber()
@@ -302,7 +323,7 @@ public sealed class ShopPanel : UIPanel
         }
         if (numberText != null)
         {
-            numberText.text = "交换";
+            numberText.text = GameLocalization.Get("exchange.title");
         }
         if (leaveButton != null)
         {
@@ -314,9 +335,14 @@ public sealed class ShopPanel : UIPanel
         if (exchangeItems.Count == 0)
         {
             if (dialogueText != null)
-                dialogueText.text = "很遗憾，你没有任何道具";
+                dialogueText.text = GameLocalization.Get(
+                    "exchange.result.no_items"
+                );
             if (buyButton != null) buyButton.interactable = false;
-            if (buyButtonText != null) buyButtonText.text = "交换一个道具";
+            if (buyButtonText != null)
+                buyButtonText.text = GameLocalization.Get(
+                    "exchange.button.confirm"
+                );
             return;
         }
 
@@ -359,12 +385,18 @@ public sealed class ShopPanel : UIPanel
 
         if (dialogueText != null)
         {
-            dialogueText.text =
-                $"【道具】{item.DisplayName}\n{item.Description}\n\n" +
-                "选择一个和我交换吧~";
+            dialogueText.text = GameLocalization.Get(
+                "exchange.item_description",
+                GameLocalization.Get("common.item"),
+                item.DisplayName,
+                item.Description
+            );
         }
         if (buyButton != null) buyButton.interactable = !exchangeResolved;
-        if (buyButtonText != null) buyButtonText.text = "交换一个道具";
+        if (buyButtonText != null)
+            buyButtonText.text = GameLocalization.Get(
+                "exchange.button.confirm"
+            );
     }
 
     private void Exchange()
@@ -392,8 +424,8 @@ public sealed class ShopPanel : UIPanel
             {
                 feedbackText.text =
                     result.Status == ExchangeResultStatus.NoAlternativeAvailable
-                        ? "暂时没有可以交换的其他道具"
-                        : "交换失败，请重新选择";
+                        ? GameLocalization.Get("exchange.no_alternative")
+                        : GameLocalization.Get("exchange.failed");
             }
             return;
         }
@@ -401,9 +433,10 @@ public sealed class ShopPanel : UIPanel
         exchangeResolved = true;
         if (feedbackText != null)
         {
-            feedbackText.text =
-                $"用 {result.Given.DisplayName} 换到了 " +
-                $"{result.Received.DisplayName}";
+            feedbackText.text = GameLocalization.Get(
+                "exchange.result.success",
+                result.Received.DisplayName
+            );
         }
         if (dialogueText != null)
         {
@@ -411,7 +444,8 @@ public sealed class ShopPanel : UIPanel
         }
         RefreshExchangeItems();
         if (buyButton != null) buyButton.interactable = true;
-        if (buyButtonText != null) buyButtonText.text = "完成";
+        if (buyButtonText != null)
+            buyButtonText.text = GameLocalization.Get("common.done");
         if (leaveButton != null) leaveButton.gameObject.SetActive(false);
     }
 

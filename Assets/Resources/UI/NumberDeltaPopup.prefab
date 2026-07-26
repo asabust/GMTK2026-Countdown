@@ -67,8 +67,8 @@ MonoBehaviour:
       m_Calls: []
   m_text: -1
   m_isRightToLeft: 0
-  m_fontAsset: {fileID: 11400000, guid: f92a8c448f2054d46b2313df1ca5eb9b, type: 2}
-  m_sharedMaterial: {fileID: -3886180701020583843, guid: f92a8c448f2054d46b2313df1ca5eb9b, type: 2}
+  m_fontAsset: {fileID: 11400000, guid: 0d406a00e69e648d3bc357c736fd72e3, type: 2}
+  m_sharedMaterial: {fileID: -3665027367023941945, guid: 0d406a00e69e648d3bc357c736fd72e3, type: 2}
   m_fontSharedMaterials: []
   m_fontMaterial: {fileID: 0}
   m_fontMaterials: []
@@ -92,8 +92,8 @@ MonoBehaviour:
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 60
-  m_fontSizeBase: 60
+  m_fontSize: 80
+  m_fontSizeBase: 80
   m_fontWeight: 400
   m_enableAutoSizing: 0
   m_fontSizeMin: 18
@@ -194,10 +194,13 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 2161f268b16847f9a250575dced62b9a, type: 3}
-  m_Name:
-  m_EditorClassIdentifier:
+  m_Name: 
+  m_EditorClassIdentifier: 
   popupTransform: {fileID: 2720306493724316499}
   canvasGroup: {fileID: 3112723743512833166}
   deltaText: {fileID: 6790957696537898580}
   riseDistance: 70
   duration: 0.65
+  countdownColor: {r: 1, g: 0.82, b: 0.22, a: 1}
+  damageColor: {r: 1, g: 0.09464024, b: 0.033018887, a: 1}
+  rewardColor: {r: 0.32809716, g: 0.9528302, b: 0.4259469, a: 1}

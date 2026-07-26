@@ -276,6 +276,14 @@ public class FogOfWarSystem : MonoBehaviour
             return;
         }
 
+        EnemyActor enemy = target.GetComponent<EnemyActor>();
+        if (enemy != null && enemy.IgnoresFog)
+        {
+            target.ApplyVisibility(CellVisibility.Visible);
+            SuppressFogForTargetFootprint(entity);
+            return;
+        }
+
         CellVisibility resolvedVisibility = CellVisibility.Unexplored;
         foreach (Vector2Int position in entity.GetOccupiedCells())
         {

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using Game.Runtime.Core;
 using Game.Runtime.Core.Attributes;
+using Game.Runtime.Data;
 using Newtonsoft.Json;
 using UnityEngine;
 using UnityEngine.Serialization;
@@ -97,7 +98,7 @@ public class GameManager : Singleton<GameManager>
                     : 0,
                 StartNewGame,
                 ReturnToTitle,
-                "最终胜利"
+                GameLocalization.Get("game_over.victory_title")
             )
         );
     }

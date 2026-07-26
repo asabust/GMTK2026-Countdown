@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Game.Runtime.Data;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -212,6 +213,10 @@ public class BattleActionPanel : UIPanel
             feedbackText.text = string.Empty;
         }
 
+        UILocalization.SetButtonText(
+            backButton,
+            "battle.player.button.back"
+        );
         ShowPrimaryMenu();
     }
 
@@ -237,9 +242,11 @@ public class BattleActionPanel : UIPanel
             : request.Attack?.Invoke() == true;
         if (!accepted && feedbackText != null)
         {
-            feedbackText.text = struggling
-                ? "现在无法挣扎"
-                : "数字不足，无法攻击";
+            feedbackText.text = GameLocalization.Get(
+                struggling
+                    ? "battle.action.cannot_struggle"
+                    : "battle.action.insufficient"
+            );
         }
 
         RefreshPrimaryMenu();
@@ -280,8 +287,9 @@ public class BattleActionPanel : UIPanel
         {
             if (previewText != null)
             {
-                previewText.text =
-                    "数字为 0，挣扎已经用尽\n自动跳过回合……";
+                previewText.text = GameLocalization.Get(
+                    "battle.action.auto_pass"
+                );
             }
             primaryMenu?.SetActive(false);
             itemMenu?.SetActive(false);
@@ -295,20 +303,30 @@ public class BattleActionPanel : UIPanel
         int remainingHP = Mathf.Max(0, request.Enemy.CurrentHP - damage);
         if (previewText != null)
         {
-            previewText.text = canStruggle
-                ? $"濒死挣扎  消耗 0  伤害 {damage}\n" +
-                  $"敌人生命：{request.Enemy.CurrentHP} > {remainingHP}"
-                : $"普通攻击  消耗 {request.AttackCost}  伤害 {damage}\n" +
-                  $"敌人生命：{request.Enemy.CurrentHP} > {remainingHP}";
+            previewText.text = GameLocalization.Get(
+                canStruggle
+                    ? "battle.action.struggle_preview"
+                    : "battle.action.attack_preview",
+                canStruggle ? 0 : request.AttackCost,
+                damage,
+                request.Enemy.CurrentHP,
+                remainingHP
+            );
         }
 
         if (attackButtonLabel != null)
         {
-            attackButtonLabel.text = canStruggle ? "挣扎" : "普攻";
+            attackButtonLabel.text = GameLocalization.Get(
+                canStruggle
+                    ? "battle.action.struggle"
+                    : "skill.basic_attack.name"
+            );
         }
         if (itemButtonLabel != null)
         {
-            itemButtonLabel.text = "道具";
+            itemButtonLabel.text = GameLocalization.Get(
+                "battle.player.items"
+            );
         }
         if (attackButton != null)
         {
@@ -349,7 +367,9 @@ public class BattleActionPanel : UIPanel
             if (itemSlotLabels.Length > i && itemSlotLabels[i] != null)
             {
                 itemSlotLabels[i].text =
-                    definition != null ? definition.DisplayName : "空";
+                    definition != null
+                        ? definition.DisplayName
+                        : GameLocalization.Get("common.empty");
             }
             if (itemSlotCounts.Length > i && itemSlotCounts[i] != null)
             {
@@ -380,11 +400,15 @@ public class BattleActionPanel : UIPanel
             selectedItemIndex = -1;
             if (itemNameText != null)
             {
-                itemNameText.text = "没有道具";
+                itemNameText.text = GameLocalization.Get(
+                    "battle.items.none"
+                );
             }
             if (itemDescriptionText != null)
             {
-                itemDescriptionText.text = "背包中的道具会显示在这里。";
+                itemDescriptionText.text = GameLocalization.Get(
+                    "battle.items.empty_description"
+                );
             }
         }
     }
@@ -417,7 +441,8 @@ public class BattleActionPanel : UIPanel
             }
             if (skillButtonLabels[i] != null)
             {
-                skillButtonLabels[i].text = definition?.DisplayName ?? "技能";
+                skillButtonLabels[i].text = definition?.DisplayName ??
+                    GameLocalization.Get("common.skill");
             }
             if (skillButtonCounts[i] != null)
             {

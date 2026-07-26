@@ -88,6 +88,7 @@ public class UIManager : Singleton<UIManager>
         }
 
         GameObject go = Instantiate(prefab);
+        LocalizationFontManager.ApplyTo(go);
         T panel = go.GetComponent<T>();
         if (panel == null)
         {

@@ -63,13 +63,17 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   definition: {fileID: 11400000, guid: ca0e27a0300e4d579e79148bede84839, type: 2}
   worldUIPrefab: {fileID: 0}
-  worldUIOffset: {x: 0, y: 1.9, z: 0}
+  worldUIOffset: {x: 0, y: 1.5, z: 0}
   idleAnimationState: Boss_idle
   attackAnimationState: Boss_attack
   specialAnimationState: Boss_attack
   bossPhase2IdleAnimationState: Boss_idle2
   bossPhase2AttackAnimationState: Boss_attack2
   bossPhase2SpecialAnimationState: Boss_attack2
+  bossLockedIdleAnimationState: Boss_idle
+  hitFlashCount: 2
+  hitFlashDuration: 0.14
+  hitFlashRecoveryDuration: 0.1
 --- !u!1 &400004
 GameObject:
   m_ObjectHideFlags: 0

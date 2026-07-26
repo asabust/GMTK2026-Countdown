@@ -1,5 +1,6 @@
 using System;
 using System.Collections;
+using Game.Runtime.Data;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -97,6 +98,14 @@ public class BattleRewardPanel : UIPanel
         resolved = false;
         isAdditionalGreed = false;
         SetButtonsInteractable(true);
+        UILocalization.SetButtonText(
+            safeButton,
+            "battle.reward.button.safe"
+        );
+        UILocalization.SetButtonText(
+            greedyButton,
+            "battle.reward.button.greedy"
+        );
 
         if (request == null)
         {
@@ -114,26 +123,47 @@ public class BattleRewardPanel : UIPanel
         string numberSummary = request.RewardMode switch
         {
             EnemyRewardMode.TurnScaled =>
-                $"锁定生命：{request.ResolvedMaxHP}\n" +
-                $"击杀回合：{request.BattleRound}\n" +
-                $"掉落倍率：{Mathf.RoundToInt(EnemyDefinition.GetTurnRewardMultiplier(request.BattleRound) * 100f)}%\n" +
-                $"本场数字：{request.BattleLoot}",
+                GameLocalization.Get(
+                    "battle.reward.summary.turn",
+                    request.ResolvedMaxHP,
+                    request.BattleRound,
+                    Mathf.RoundToInt(
+                        EnemyDefinition.GetTurnRewardMultiplier(
+                            request.BattleRound
+                        ) * 100f
+                    ),
+                    request.BattleLoot
+                ),
             EnemyRewardMode.HealthScaled =>
-                $"锁定生命：{request.ResolvedMaxHP}\n" +
-                $"生命掉落：50%\n" +
-                $"本场数字：{request.BattleLoot}",
-            _ => $"本场数字：{request.BattleLoot}"
+                GameLocalization.Get(
+                    "battle.reward.summary.health",
+                    request.ResolvedMaxHP,
+                    request.BattleLoot
+                ),
+            _ => GameLocalization.Get(
+                "battle.reward.summary.fixed",
+                request.BattleLoot
+            )
         };
         summaryText.text = string.IsNullOrWhiteSpace(request.ItemDropSummary)
             ? numberSummary
             : $"{numberSummary}\n{request.ItemDropSummary}";
-        safeText.text = $"获得 {request.BattleLoot}（100%）";
-        greedyText.text =
-            $"{successPercent}% 获得 {greedyGain}\n" +
-            $"{100 - successPercent}% 获得 0";
+        safeText.text = GameLocalization.Get(
+            "battle.reward.safe",
+            request.BattleLoot
+        );
+        greedyText.text = GameLocalization.Get(
+            "battle.reward.greedy",
+            successPercent,
+            greedyGain,
+            100 - successPercent
+        );
+        string itemSafety = GameLocalization.Get(
+            "battle.reward.item_safety"
+        );
         resultText.text = string.IsNullOrWhiteSpace(request.ItemDropSummary)
-            ? "道具不会因贪婪失败而丢失"
-            : $"{request.ItemDropSummary}\n道具不会因贪婪失败而丢失";
+            ? itemSafety
+            : $"{request.ItemDropSummary}\n{itemSafety}";
     }
 
     public override void OnClose()
@@ -180,14 +210,21 @@ public class BattleRewardPanel : UIPanel
             );
             int nextTotal = result.GainedNumber + independentGain;
             isAdditionalGreed = true;
-            safeText.text = $"收手，获得 {result.GainedNumber}";
-            greedyText.text =
-                $"追加贪婪\n{nextSuccessPercent}% 本次 +{independentGain}" +
-                $"（累计 {nextTotal}）\n" +
-                $"{100 - nextSuccessPercent}% 本次 +0";
-            resultText.text =
-                $"贪婪成功，当前累计：{result.GainedNumber}\n" +
-                "可以收手，或继续追加贪婪";
+            safeText.text = GameLocalization.Get(
+                "battle.reward.stop",
+                result.GainedNumber
+            );
+            greedyText.text = GameLocalization.Get(
+                "battle.reward.additional",
+                nextSuccessPercent,
+                independentGain,
+                nextTotal,
+                100 - nextSuccessPercent
+            );
+            resultText.text = GameLocalization.Get(
+                "battle.reward.additional_success",
+                result.GainedNumber
+            );
             resolved = false;
             SetButtonsInteractable(true);
             return;
@@ -196,18 +233,30 @@ public class BattleRewardPanel : UIPanel
         if (choice == BattleRewardChoice.Safe)
         {
             resultText.text = isAdditionalGreed
-                ? $"收手领取：+{result.GainedNumber}"
-                : $"安全领取：+{result.GainedNumber}";
+                ? GameLocalization.Get(
+                    "battle.reward.stopped_result",
+                    result.GainedNumber
+                )
+                : GameLocalization.Get(
+                    "battle.reward.safe_result",
+                    result.GainedNumber
+                );
         }
         else if (result.Succeeded)
         {
-            resultText.text = $"贪婪成功：+{result.GainedNumber}";
+            resultText.text = GameLocalization.Get(
+                "battle.reward.result.success",
+                result.GainedNumber
+            );
         }
         else
         {
             resultText.text = result.GainedNumber > 0
-                ? $"本次贪婪失败，追加结束\n已获得：+{result.GainedNumber}"
-                : "贪婪失败：+0";
+                ? GameLocalization.Get(
+                    "battle.reward.additional_failed",
+                    result.GainedNumber
+                )
+                : GameLocalization.Get("battle.reward.result.failed");
         }
 
         finishRoutine = StartCoroutine(FinishAfterResult());

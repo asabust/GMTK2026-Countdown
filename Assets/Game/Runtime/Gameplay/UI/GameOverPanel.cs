@@ -1,4 +1,5 @@
 using System;
+using Game.Runtime.Data;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -10,7 +11,7 @@ public sealed class GameOverRequest
         int finalNumber,
         Action retry,
         Action returnToTitle,
-        string title = "跌破归零"
+        string title = null
     )
     {
         Reason = reason;
@@ -49,6 +50,8 @@ public class GameOverPanel : UIPanel
         request = data as GameOverRequest;
         submitted = false;
         SetButtonsInteractable(true);
+        UILocalization.SetButtonText(retryButton, "game_over.retry");
+        UILocalization.SetButtonText(titleButton, "game_over.return_title");
 
         if (request == null)
         {
@@ -56,9 +59,14 @@ public class GameOverPanel : UIPanel
             return;
         }
 
-        titleText.text = request.Title;
+        titleText.text = string.IsNullOrWhiteSpace(request.Title)
+            ? GameLocalization.Get("game_over.title")
+            : request.Title;
         reasonText.text = request.Reason;
-        finalNumberText.text = $"最终数字：{request.FinalNumber}";
+        finalNumberText.text = GameLocalization.Get(
+            "game_over.final_number",
+            request.FinalNumber
+        );
     }
 
     public override void OnClose()

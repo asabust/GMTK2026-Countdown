@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using Game.Runtime.Core;
+using Game.Runtime.Data;
 using UnityEngine;
 
 public enum EncounterPhase
@@ -418,16 +419,21 @@ public class EncounterController : MonoBehaviour
                     out CollectibleDefinition stolenItem
                 ))
             {
-                resolutionDescription =
-                    $"窃取：永久失去 {stolenItem.DisplayName}";
+                resolutionDescription = GameLocalization.Get(
+                    "enemy.action.item_stolen",
+                    stolenItem.DisplayName
+                );
             }
             else
             {
                 damageToPlayer = intentResolution.NoItemFallbackDamage;
                 playerStunned = intentResolution.StunsPlayerOnFallback;
-                resolutionDescription =
-                    $"无道具可偷：-{damageToPlayer}" +
-                    (playerStunned ? "，眩晕 1 回合" : string.Empty);
+                resolutionDescription = GameLocalization.Get(
+                    playerStunned
+                        ? "enemy.action.no_item_stunned"
+                        : "enemy.action.no_item",
+                    damageToPlayer
+                );
             }
         }
 
@@ -456,8 +462,11 @@ public class EncounterController : MonoBehaviour
         if (intentResolution.NumberToSteal > 0 &&
             stolenNumber != intentResolution.NumberToSteal)
         {
-            resolutionDescription =
-                $"{intentResolution.Description}（实际偷取 {stolenNumber}）";
+            resolutionDescription = GameLocalization.Get(
+                "enemy.action.actual_stolen",
+                intentResolution.Description,
+                stolenNumber
+            );
         }
         actingEnemy.ShowIntentResolution(resolutionDescription);
 
@@ -520,7 +529,9 @@ public class EncounterController : MonoBehaviour
         battleRound++;
         playerSkills?.CompletePlayerAction();
         CurrentEnemy.ShowCombatInformation(battleRound + 1);
-        CurrentEnemy.ShowIntentResolution("玩家眩晕：跳过本回合");
+        CurrentEnemy.ShowIntentResolution(
+            GameLocalization.Get("battle.player_stunned")
+        );
         if (autoPassDelay > 0f)
         {
             yield return new WaitForSeconds(autoPassDelay);
@@ -544,7 +555,9 @@ public class EncounterController : MonoBehaviour
         battleStatusWorldUI?.SetCombatVisible(false);
         CurrentEnemy?.WorldUI?.HideIntent();
         playerController.SetExternalInputLocked(true);
-        GameManager.Instance?.GameOver("数字跌破 0");
+        GameManager.Instance?.GameOver(
+            GameLocalization.Get("game_over.reason.combat")
+        );
     }
 
     private void ResolveDefeatedEnemy()
@@ -615,7 +628,9 @@ public class EncounterController : MonoBehaviour
         CurrentEnemy = null;
         defeatedBoss?.ReleaseAndDestroy();
         playerController.SetExternalInputLocked(true);
-        GameManager.Instance?.Victory("你击败了衰叹之钟");
+        GameManager.Instance?.Victory(
+            GameLocalization.Get("game_over.reason.victory")
+        );
     }
 
     private IEnumerator ResolveHorrorBoxExplosion()
@@ -752,18 +767,33 @@ public class EncounterController : MonoBehaviour
                 : InventoryAddResult.InvalidDefinition;
             string resultText = result switch
             {
-                InventoryAddResult.Success => $"获得 {drop.DisplayName}",
+                InventoryAddResult.Success => GameLocalization.Get(
+                    "battle.drop.received",
+                    drop.DisplayName
+                ),
                 InventoryAddResult.ItemSlotsFull =>
-                    $"{drop.DisplayName}：道具栏已满，未获得",
+                    GameLocalization.Get(
+                        "battle.drop.inventory_full",
+                        drop.DisplayName
+                    ),
                 InventoryAddResult.MaximumStacksReached =>
-                    $"{drop.DisplayName}：已达持有上限，未获得",
-                _ => $"{drop.DisplayName}：未获得"
+                    GameLocalization.Get(
+                        "battle.drop.maximum",
+                        drop.DisplayName
+                    ),
+                _ => GameLocalization.Get(
+                    "battle.drop.failed",
+                    drop.DisplayName
+                )
             };
             results.Add(resultText);
         }
 
         return results.Count > 0
-            ? $"道具：{string.Join("；", results)}"
+            ? GameLocalization.Get(
+                "battle.drop.summary",
+                string.Join(GameLocalization.Get("common.list_separator"), results)
+            )
             : string.Empty;
     }
 
@@ -902,6 +932,12 @@ public class EncounterController : MonoBehaviour
             }
         }
 
+        if (battleStatusWorldUI != null)
+        {
+            LocalizationFontManager.ApplyTo(
+                battleStatusWorldUI.gameObject
+            );
+        }
         battleStatusWorldUI?.Bind(playerRunStats);
         battleStatusWorldUI?.SetCombatVisible(false);
     }
@@ -991,7 +1027,7 @@ public class EncounterController : MonoBehaviour
         {
             return SkillResult(
                 BattleSkillUseStatus.WrongPhase,
-                "只能在玩家战斗回合使用"
+                GameLocalization.Get("battle.validation.wrong_phase")
             );
         }
         if (definition == null ||
@@ -999,14 +1035,14 @@ public class EncounterController : MonoBehaviour
         {
             return SkillResult(
                 BattleSkillUseStatus.InvalidSkill,
-                "这个技能无法在技能栏中使用"
+                GameLocalization.Get("battle.skill.invalid")
             );
         }
         if (playerSkills == null || !playerSkills.Owns(definition))
         {
             return SkillResult(
                 BattleSkillUseStatus.NotLearned,
-                "尚未掌握这个技能"
+                GameLocalization.Get("battle.skill.not_learned")
             );
         }
 
@@ -1015,7 +1051,7 @@ public class EncounterController : MonoBehaviour
         {
             return SkillResult(
                 BattleSkillUseStatus.OnCooldown,
-                $"冷却中：还需等待 {cooldown} 回合"
+                GameLocalization.Get("battle.skill.cooldown", cooldown)
             );
         }
         if (numberResource == null ||
@@ -1023,7 +1059,7 @@ public class EncounterController : MonoBehaviour
         {
             return SkillResult(
                 BattleSkillUseStatus.NumberInsufficient,
-                "数字不足，无法使用"
+                GameLocalization.Get("battle.validation.insufficient")
             );
         }
 
@@ -1047,7 +1083,7 @@ public class EncounterController : MonoBehaviour
         {
             return SkillResult(
                 BattleSkillUseStatus.NumberInsufficient,
-                "数字不足，无法使用"
+                GameLocalization.Get("battle.validation.insufficient")
             );
         }
 
@@ -1112,7 +1148,10 @@ public class EncounterController : MonoBehaviour
 
         return SkillResult(
             BattleSkillUseStatus.Success,
-            $"{definition.DisplayName}已使用"
+            GameLocalization.Get(
+                "battle.validation.used",
+                definition.DisplayName
+            )
         );
     }
 
@@ -1124,7 +1163,7 @@ public class EncounterController : MonoBehaviour
         {
             return ItemResult(
                 BattleItemUseStatus.WrongPhase,
-                "只能在玩家战斗回合使用"
+                GameLocalization.Get("battle.validation.wrong_phase")
             );
         }
         if (definition == null ||
@@ -1133,7 +1172,7 @@ public class EncounterController : MonoBehaviour
         {
             return ItemResult(
                 BattleItemUseStatus.InvalidItem,
-                "这个道具还没有配置战斗效果"
+                GameLocalization.Get("battle.item.invalid")
             );
         }
         if (playerInventory == null ||
@@ -1141,7 +1180,7 @@ public class EncounterController : MonoBehaviour
         {
             return ItemResult(
                 BattleItemUseStatus.NotOwned,
-                "背包中没有这个道具"
+                GameLocalization.Get("battle.item.not_owned")
             );
         }
 
@@ -1153,7 +1192,7 @@ public class EncounterController : MonoBehaviour
                 {
                     return ItemResult(
                         BattleItemUseStatus.NumberAlreadyFull,
-                        "数字已满，暂时无法使用"
+                        GameLocalization.Get("battle.item.number_full")
                     );
                 }
                 break;
@@ -1163,7 +1202,7 @@ public class EncounterController : MonoBehaviour
                 {
                     return ItemResult(
                         BattleItemUseStatus.AlreadyActive,
-                        "少女的心事已经在保护你"
+                        GameLocalization.Get("battle.item.already_protected")
                     );
                 }
                 break;
@@ -1174,7 +1213,7 @@ public class EncounterController : MonoBehaviour
                 {
                     return ItemResult(
                         BattleItemUseStatus.AlreadyActive,
-                        "本回合的护盾已经生效"
+                        GameLocalization.Get("battle.item.shield_active")
                     );
                 }
                 break;
@@ -1196,7 +1235,7 @@ public class EncounterController : MonoBehaviour
         {
             return ItemResult(
                 BattleItemUseStatus.NotOwned,
-                "道具数量发生变化，请重新选择"
+                GameLocalization.Get("battle.item.changed")
             );
         }
 
@@ -1235,7 +1274,10 @@ public class EncounterController : MonoBehaviour
         enemyTurnRoutine = StartCoroutine(ResolveEnemyTurn());
         return ItemResult(
             BattleItemUseStatus.Success,
-            $"{definition.DisplayName}已使用"
+            GameLocalization.Get(
+                "battle.validation.used",
+                definition.DisplayName
+            )
         );
     }
 

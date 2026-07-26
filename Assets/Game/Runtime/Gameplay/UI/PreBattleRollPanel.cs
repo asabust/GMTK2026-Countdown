@@ -1,4 +1,5 @@
 using System;
+using Game.Runtime.Data;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -45,10 +46,32 @@ public class PreBattleRollPanel : UIPanel
             return;
         }
 
-        enemyNameText.text = definition.DisplayName;
-        healthRangeText.text = $"生命范围：{definition.MinHP}～{definition.MaxHP}";
-        rewardText.text = $"掉落：{definition.RewardPreview}";
-        stableHealthText.text = $"不 ROLL：生命 {definition.StableHP}";
+        UILocalization.SetButtonText(
+            rollButton,
+            "battle.roll.button.roll"
+        );
+        UILocalization.SetButtonText(
+            stableButton,
+            "battle.roll.button.stable"
+        );
+        enemyNameText.text = GameLocalization.Get(
+            "battle.roll.encounter",
+            definition.DisplayName
+        );
+        healthRangeText.text = GameLocalization.Get(
+            "battle.roll.health_range_with_description",
+            definition.Description,
+            definition.MinHP,
+            definition.MaxHP
+        );
+        rewardText.text = GameLocalization.Get(
+            "battle.roll.reward",
+            definition.RewardPreview
+        );
+        stableHealthText.text = GameLocalization.Get(
+            "battle.roll.stable_health",
+            definition.StableHP
+        );
         SetButtonsInteractable(true);
     }
 

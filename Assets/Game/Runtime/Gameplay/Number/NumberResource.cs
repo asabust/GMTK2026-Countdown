@@ -44,7 +44,7 @@ public class NumberResource : MonoBehaviour
 {
     [SerializeField, Min(1)] private int initialValue = 100;
     [SerializeField] private int minimumValue = -1;
-    [SerializeField, Min(1)] private int maximumValue = 199;
+    [SerializeField, Min(1)] private int maximumValue = 100;
 
     public static NumberResource Instance { get; private set; }
 

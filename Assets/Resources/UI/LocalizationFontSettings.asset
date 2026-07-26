@@ -1,0 +1,16 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f8fbdc7b5f304455bd44848227b6ccb5, type: 3}
+  m_Name: LocalizationFontSettings
+  m_EditorClassIdentifier:
+  englishFont: {fileID: 11400000, guid: a1c6e3ee945554dc28e36734b06d6bbe, type: 2}
+  cjkFont: {fileID: 11400000, guid: 0d406a00e69e648d3bc357c736fd72e3, type: 2}

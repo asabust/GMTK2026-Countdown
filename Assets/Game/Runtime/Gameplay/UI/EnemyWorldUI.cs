@@ -1,3 +1,4 @@
+using Game.Runtime.Data;
 using TMPro;
 using UnityEngine;
 
@@ -17,7 +18,10 @@ public class EnemyWorldUI : MonoBehaviour
         intentRoot?.SetActive(false);
         if (rewardText != null)
         {
-            rewardText.text = $"掉落 {rewardDescription}";
+            rewardText.text = GameLocalization.Get(
+                "enemy.world.reward",
+                rewardDescription
+            );
         }
     }
 
@@ -33,12 +37,19 @@ public class EnemyWorldUI : MonoBehaviour
 
         if (rewardText != null)
         {
-            rewardText.text = $"掉落 {rewardDescription}";
+            rewardText.text = GameLocalization.Get(
+                "enemy.world.reward",
+                rewardDescription
+            );
         }
 
         if (healthText != null)
         {
-            healthText.text = $"HP {currentHP}/{maxHP}";
+            healthText.text = GameLocalization.Get(
+                "enemy.world.health",
+                currentHP,
+                maxHP
+            );
         }
     }
 

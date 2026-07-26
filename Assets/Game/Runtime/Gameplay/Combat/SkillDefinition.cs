@@ -1,3 +1,4 @@
+using Game.Runtime.Data;
 using UnityEngine;
 
 public enum PlayerSkillType
@@ -30,8 +31,25 @@ public sealed class SkillDefinition : ScriptableObject
     [SerializeField, Range(0f, 1f)] private float extraHitChance = 0.5f;
 
     public string SkillId => skillId;
-    public string DisplayName => displayName;
-    public string Description => description;
+    public string DisplayName => GameLocalization.GetOrDefault(
+        $"skill.{skillId}.name",
+        displayName
+    );
+    public string Description =>
+        skillType == PlayerSkillType.Revenge
+            ? GameLocalization.GetOrDefault(
+                $"skill.{skillId}.description",
+                description,
+                numberCost,
+                minimumHits,
+                maximumHits,
+                baseDamage,
+                cooldownTurns
+            )
+            : GameLocalization.GetOrDefault(
+                $"skill.{skillId}.description",
+                description
+            );
     public Sprite Icon => icon;
     public PlayerSkillType SkillType => skillType;
     public int NumberCost => numberCost;

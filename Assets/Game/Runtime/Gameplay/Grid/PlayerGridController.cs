@@ -1,5 +1,6 @@
 using System;
 using System.Collections;
+using Game.Runtime.Data;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.SceneManagement;
@@ -315,7 +316,9 @@ public class PlayerGridController : GridEntity
             numberResource.CurrentValue <= numberResource.MinimumValue)
         {
             externalInputLocked = true;
-            GameManager.Instance?.GameOver("最后一步后数字跌破 0");
+            GameManager.Instance?.GameOver(
+                GameLocalization.Get("game_over.reason.movement")
+            );
         }
     }
 

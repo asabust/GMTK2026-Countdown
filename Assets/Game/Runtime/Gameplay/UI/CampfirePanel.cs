@@ -1,4 +1,5 @@
 using System;
+using Game.Runtime.Data;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -92,6 +93,7 @@ public sealed class CampfirePanel : UIPanel
         awaitingFullNumberConfirmation = false;
         submitted = false;
         SetButtonsInteractable(true);
+        UILocalization.SetButtonText(leaveButton, "common.leave");
 
         if (request == null && treasureRequest == null)
         {
@@ -108,7 +110,7 @@ public sealed class CampfirePanel : UIPanel
 
         if (titleText != null)
         {
-            titleText.text = "篝火";
+            titleText.text = GameLocalization.Get("campfire.title");
         }
 
         if (descriptionText != null)
@@ -119,9 +121,13 @@ public sealed class CampfirePanel : UIPanel
             int maximum = request.NumberResource != null
                 ? request.NumberResource.MaximumValue
                 : 0;
-            descriptionText.text =
-                $"休息后恢复 {request.MinimumRestore}～" +
-                $"{request.MaximumRestore}\n当前数字：{current}/{maximum}";
+            descriptionText.text = GameLocalization.Get(
+                "campfire.description",
+                request.MinimumRestore,
+                request.MaximumRestore,
+                current,
+                maximum
+            );
         }
 
         if (feedbackText != null)
@@ -131,7 +137,7 @@ public sealed class CampfirePanel : UIPanel
 
         if (restButtonText != null)
         {
-            restButtonText.text = "休息";
+            restButtonText.text = GameLocalization.Get("common.rest");
         }
     }
 
@@ -156,7 +162,7 @@ public sealed class CampfirePanel : UIPanel
                 ? treasureRequest.Collectible.DisplayName
                 : treasureRequest.Skill != null
                     ? treasureRequest.Skill.DisplayName
-                    : "未知奖励";
+                    : GameLocalization.Get("common.unknown_reward");
             submitted = true;
             SetButtonsInteractable(false);
             bool received = treasureRequest.IsCollectibleReward
@@ -165,8 +171,8 @@ public sealed class CampfirePanel : UIPanel
             if (feedbackText != null)
             {
                 feedbackText.text = received
-                    ? $"获得：{rewardName}"
-                    : "未能获得奖励";
+                    ? GameLocalization.Get("treasure.received", rewardName)
+                    : GameLocalization.Get("treasure.receive_failed");
             }
             return;
         }
@@ -181,12 +187,16 @@ public sealed class CampfirePanel : UIPanel
             awaitingFullNumberConfirmation = true;
             if (feedbackText != null)
             {
-                feedbackText.text = "数字已满，仍要消耗这处篝火吗？";
+                feedbackText.text = GameLocalization.Get(
+                    "campfire.full_confirmation"
+                );
             }
 
             if (restButtonText != null)
             {
-                restButtonText.text = "仍要休息";
+                restButtonText.text = GameLocalization.Get(
+                    "campfire.rest_anyway"
+                );
             }
 
             return;
@@ -225,26 +235,35 @@ public sealed class CampfirePanel : UIPanel
         if (titleText != null)
         {
             titleText.text = skill != null
-                ? $"宝藏：{skill.DisplayName}"
-                : "宝藏";
+                ? GameLocalization.Get("treasure.title_named", skill.DisplayName)
+                : GameLocalization.Get("treasure.title");
         }
         if (descriptionText != null)
         {
             string damage = skill != null && skill.BaseDamage > 0
-                ? $"  伤害 {skill.BaseDamage}"
+                ? GameLocalization.Get("battle.damage_suffix", skill.BaseDamage)
                 : string.Empty;
             descriptionText.text = skill == null
-                ? "宝藏中没有配置技能。"
-                : $"消耗 {skill.NumberCost}{damage}  CD {skill.CooldownTurns}\n" +
-                  skill.Description;
+                ? GameLocalization.Get("treasure.skill_missing")
+                : GameLocalization.Get(
+                    "treasure.skill_description",
+                    skill.NumberCost,
+                    damage,
+                    skill.CooldownTurns,
+                    skill.Description
+                );
         }
         if (feedbackText != null)
         {
-            feedbackText.text = owned ? "已经掌握该技能" : string.Empty;
+            feedbackText.text = owned
+                ? GameLocalization.Get("treasure.skill_owned")
+                : string.Empty;
         }
         if (restButtonText != null)
         {
-            restButtonText.text = owned ? "已掌握" : "学习技能";
+            restButtonText.text = owned
+                ? GameLocalization.Get("treasure.skill_owned_short")
+                : GameLocalization.Get("treasure.learn_skill");
         }
         if (restButton != null)
         {
@@ -264,34 +283,51 @@ public sealed class CampfirePanel : UIPanel
                 ? treasureRequest.Inventory.CanAdd(collectible)
                 : InventoryAddResult.InvalidDefinition;
         bool canClaim = addResult == InventoryAddResult.Success;
-        string kind = collectible?.Kind == CollectibleKind.Relic
-            ? "藏品"
-            : "道具";
+        string kind = GameLocalization.Get(
+            collectible?.Kind == CollectibleKind.Relic
+                ? "common.relic"
+                : "common.item"
+        );
 
         if (titleText != null)
         {
             titleText.text = collectible != null
-                ? $"宝藏：{collectible.DisplayName}"
-                : "宝藏";
+                ? GameLocalization.Get(
+                    "treasure.title_named",
+                    collectible.DisplayName
+                )
+                : GameLocalization.Get("treasure.title");
         }
         if (descriptionText != null)
         {
             descriptionText.text = collectible == null
-                ? "宝藏中没有配置道具或藏品。"
-                : $"【{kind}】{collectible.DisplayName}\n" +
-                  collectible.Description;
+                ? GameLocalization.Get("treasure.collectible_missing")
+                : GameLocalization.Get(
+                    "common.kind_description",
+                    kind,
+                    collectible.DisplayName,
+                    collectible.Description
+                );
         }
         if (feedbackText != null)
         {
             feedbackText.text = canClaim
                 ? string.Empty
                 : addResult == InventoryAddResult.MaximumStacksReached
-                    ? $"该{kind}已达到持有上限"
-                    : $"现在无法获得该{kind}";
+                    ? GameLocalization.Get(
+                        "treasure.maximum_reached",
+                        kind
+                    )
+                    : GameLocalization.Get(
+                        "treasure.cannot_claim_kind",
+                        kind
+                    );
         }
         if (restButtonText != null)
         {
-            restButtonText.text = canClaim ? "领取" : "无法领取";
+            restButtonText.text = canClaim
+                ? GameLocalization.Get("common.claim")
+                : GameLocalization.Get("common.cannot_claim");
         }
         if (restButton != null)
         {

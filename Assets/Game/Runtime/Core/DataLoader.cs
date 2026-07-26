@@ -17,6 +17,17 @@ namespace Game.Runtime.Core
     /// </summary>
     public class DataLoader : Singleton<DataLoader>
     {
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
+        private static void EnsureInstance()
+        {
+            if (FindObjectOfType<DataLoader>() != null)
+            {
+                return;
+            }
+
+            new GameObject(nameof(DataLoader)).AddComponent<DataLoader>();
+        }
+
         /// <summary>
         /// 所有表格数据包
         /// </summary>

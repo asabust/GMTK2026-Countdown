@@ -1,3 +1,5 @@
+using System.Globalization;
+using Game.Runtime.Data;
 using UnityEngine;
 
 public enum CollectibleKind { Item, Relic }
@@ -29,8 +31,24 @@ public sealed class CollectibleDefinition : ScriptableObject
     [SerializeField, Min(0)] private int effectDuration;
 
     public string CollectibleId => collectibleId;
-    public string DisplayName => displayName;
-    public string Description => description;
+    public string DisplayName => GameLocalization.GetOrDefault(
+        $"collectible.{collectibleId}.name",
+        displayName
+    );
+    public string Description =>
+        effectType == CollectibleEffectType.GreedMultiplierOverride
+            ? GameLocalization.GetOrDefault(
+                $"collectible.{collectibleId}.description",
+                description,
+                effectValue.ToString(
+                    "0.#",
+                    CultureInfo.InvariantCulture
+                )
+            )
+            : GameLocalization.GetOrDefault(
+                $"collectible.{collectibleId}.description",
+                description
+            );
     public Sprite Icon => icon;
     public CollectibleKind Kind => kind;
     public int MaximumStacks => maximumStacks;

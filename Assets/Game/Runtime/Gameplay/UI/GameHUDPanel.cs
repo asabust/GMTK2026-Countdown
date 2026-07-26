@@ -8,6 +8,7 @@ public class GameHUDPanel : UIPanel
 {
     [Header("Number")]
     [SerializeField] private TMP_Text currentNumberText;
+    [SerializeField] private Image numberFill;
     [SerializeField] private RectTransform deltaPopupRoot;
     [SerializeField] private NumberDeltaPopup numberDeltaPopupPrefab;
     [SerializeField] private Vector3 popupWorldOffset = new(0f, 1.1f, 0f);
@@ -83,12 +84,15 @@ public class GameHUDPanel : UIPanel
         }
 
         numberResource.Changed += HandleNumberChanged;
-        RefreshNumber(numberResource.CurrentValue);
+        RefreshNumber(
+            numberResource.CurrentValue,
+            numberResource.MaximumValue
+        );
     }
 
     private void HandleNumberChanged(NumberChange change)
     {
-        RefreshNumber(change.CurrentValue);
+        RefreshNumber(change.CurrentValue, numberResource.MaximumValue);
         if (change.Delta != 0)
         {
             ShowDelta(change);
@@ -263,11 +267,18 @@ public class GameHUDPanel : UIPanel
         }
     }
 
-    private void RefreshNumber(int value)
+    private void RefreshNumber(int value, int maximumValue)
     {
         if (currentNumberText != null)
         {
-            currentNumberText.text = value.ToString();
+            currentNumberText.text = $"{value}/{maximumValue}";
+        }
+
+        if (numberFill != null)
+        {
+            numberFill.fillAmount = maximumValue > 0
+                ? Mathf.Clamp01((float)value / maximumValue)
+                : 0f;
         }
     }
 
@@ -293,6 +304,7 @@ public class GameHUDPanel : UIPanel
         NumberDeltaPopup popup = popupPool.Count > 0
             ? popupPool.Dequeue()
             : Instantiate(numberDeltaPopupPrefab, deltaPopupRoot);
+        LocalizationFontManager.ApplyTo(popup.gameObject);
 
         activePopup = popup;
         activePopups.Add(popup);

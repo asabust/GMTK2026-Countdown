@@ -1,16 +1,18 @@
 using System;
 using System.Collections.Generic;
+using UnityEngine;
 
 namespace Game.Runtime.Data
 {
     public static class GameLocalization
     {
+        private const string LanguagePreferenceKey = "game.language";
         private static readonly LocalizationData fallbackTable =
             CreateFallbackTable();
         private static LocalizationData runtimeTable;
 
         public static Language CurrentLanguage { get; private set; } =
-            Language.Chinese;
+            LoadSavedLanguage();
 
         public static event Action LanguageChanged;
 
@@ -22,6 +24,8 @@ namespace Game.Runtime.Data
             }
 
             CurrentLanguage = language;
+            PlayerPrefs.SetInt(LanguagePreferenceKey, (int)language);
+            PlayerPrefs.Save();
             LanguageChanged?.Invoke();
         }
 
@@ -33,21 +37,77 @@ namespace Game.Runtime.Data
 
         public static string Get(string key, params object[] arguments)
         {
-            string template;
-            if (runtimeTable == null ||
-                !runtimeTable.TryGet(CurrentLanguage, key, out template))
+            if (!TryGet(key, out string template))
             {
-                fallbackTable.TryGet(CurrentLanguage, key, out template);
+                return $"[MISSING:{CurrentLanguage}:{key}]";
             }
 
+            return Format(template, key, arguments);
+        }
+
+        public static string GetOrDefault(
+            string key,
+            string fallback,
+            params object[] arguments
+        )
+        {
+            string template = TryGet(key, out string localized)
+                ? localized
+                : fallback;
+            return Format(template, key, arguments);
+        }
+
+        public static bool HasKey(string key) => TryGet(key, out _);
+
+        private static bool TryGet(string key, out string template)
+        {
+            if (runtimeTable != null &&
+                runtimeTable.TryGet(CurrentLanguage, key, out template))
+            {
+                return true;
+            }
+
+            return fallbackTable.TryGet(CurrentLanguage, key, out template);
+        }
+
+        private static string Format(
+            string template,
+            string key,
+            object[] arguments
+        )
+        {
             if (string.IsNullOrWhiteSpace(template))
             {
                 return $"[MISSING:{CurrentLanguage}:{key}]";
             }
 
-            return arguments == null || arguments.Length == 0
-                ? template
-                : string.Format(template, arguments);
+            if (arguments == null || arguments.Length == 0)
+            {
+                return template;
+            }
+
+            try
+            {
+                return string.Format(template, arguments);
+            }
+            catch (FormatException exception)
+            {
+                Debug.LogError(
+                    $"Invalid localization format for '{key}': {exception.Message}"
+                );
+                return $"[FORMAT:{CurrentLanguage}:{key}]";
+            }
+        }
+
+        private static Language LoadSavedLanguage()
+        {
+            int saved = PlayerPrefs.GetInt(
+                LanguagePreferenceKey,
+                (int)Language.Chinese
+            );
+            return Enum.IsDefined(typeof(Language), saved)
+                ? (Language)saved
+                : Language.Chinese;
         }
 
         private static LocalizationData CreateFallbackTable()

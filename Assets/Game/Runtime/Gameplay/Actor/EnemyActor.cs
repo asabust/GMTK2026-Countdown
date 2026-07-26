@@ -50,6 +50,7 @@ public class EnemyActor : MonoBehaviour, IFogVisibilityResponder
     [SerializeField] private string bossPhase2IdleAnimationState = "Boss_idle2";
     [SerializeField] private string bossPhase2AttackAnimationState = "Boss_attack2";
     [SerializeField] private string bossPhase2SpecialAnimationState = "Boss_attack2";
+    [SerializeField] private string bossLockedIdleAnimationState = "Boss_idle";
     [Header("Hit Flash")]
     [SerializeField, Min(1)] private int hitFlashCount = 2;
     [SerializeField, Min(0f)] private float hitFlashDuration = 0.14f;
@@ -66,6 +67,12 @@ public class EnemyActor : MonoBehaviour, IFogVisibilityResponder
     private bool showingCombatInformation;
 
     public EnemyDefinition Definition => definition;
+    public bool IsBoss =>
+        definition != null &&
+        definition.BehaviorType == EnemyBehaviorType.Boss;
+    public bool IgnoresFog => IsBoss;
+    private bool ShouldLockBossExplorationAnimation =>
+        IsBoss && !showingCombatInformation;
     public bool IsHealthResolved { get; private set; }
     public int ResolvedMaxHP { get; private set; }
     public int CurrentHP { get; private set; }
@@ -105,6 +112,10 @@ public class EnemyActor : MonoBehaviour, IFogVisibilityResponder
         characterSpriteRenderer = characterAnimator != null
             ? characterAnimator.GetComponent<SpriteRenderer>()
             : GetComponentInChildren<SpriteRenderer>(true);
+        if (IsBoss)
+        {
+            PlayAnimation(bossLockedIdleAnimationState);
+        }
         EnsureWorldUI();
         ApplyFogVisibility(fogVisibilityTarget.CurrentVisibility);
     }
@@ -189,7 +200,11 @@ public class EnemyActor : MonoBehaviour, IFogVisibilityResponder
     {
         if (definition == null || !HasLockedIntent)
         {
-            return new EnemyIntentResolution(0, 0, "等待");
+            return new EnemyIntentResolution(
+                0,
+                0,
+                GameLocalization.Get("enemy.action.wait")
+            );
         }
 
         if (definition.BehaviorType == EnemyBehaviorType.DrunkenRaider)
@@ -210,9 +225,11 @@ public class EnemyActor : MonoBehaviour, IFogVisibilityResponder
         int damage = GetCurrentIntentDamage();
         string description = CurrentIntent switch
         {
-            EnemyIntentType.Attack => $"攻击：-{damage}",
-            EnemyIntentType.Special => $"啄地：-{damage}",
-            _ => "等待"
+            EnemyIntentType.Attack =>
+                GameLocalization.Get("enemy.action.attack", damage),
+            EnemyIntentType.Special =>
+                GameLocalization.Get("enemy.action.peck", damage),
+            _ => GameLocalization.Get("enemy.action.wait")
         };
         return new EnemyIntentResolution(damage, 0, description);
     }
@@ -439,6 +456,11 @@ public class EnemyActor : MonoBehaviour, IFogVisibilityResponder
     public void ShowExplorationInformation()
     {
         showingCombatInformation = false;
+        if (IsBoss)
+        {
+            PlayAnimation(bossLockedIdleAnimationState);
+        }
+
         if (fogVisibility != CellVisibility.Visible)
         {
             return;
@@ -452,6 +474,11 @@ public class EnemyActor : MonoBehaviour, IFogVisibilityResponder
 
     public void ApplyFogVisibility(CellVisibility visibility)
     {
+        if (IgnoresFog)
+        {
+            visibility = CellVisibility.Visible;
+        }
+
         fogVisibility = visibility;
         if (fogVisibilityTarget == null)
         {
@@ -516,6 +543,7 @@ public class EnemyActor : MonoBehaviour, IFogVisibilityResponder
         }
 
         worldUI = Instantiate(worldUIPrefab, transform);
+        LocalizationFontManager.ApplyTo(worldUI.gameObject);
         worldUI.transform.localPosition = worldUIOffset;
         worldUI.transform.localRotation = Quaternion.identity;
     }
@@ -539,6 +567,11 @@ public class EnemyActor : MonoBehaviour, IFogVisibilityResponder
             characterAnimator = GetComponentInChildren<Animator>(true);
         }
 
+        if (ShouldLockBossExplorationAnimation)
+        {
+            stateName = bossLockedIdleAnimationState;
+        }
+
         if (characterAnimator == null ||
             characterAnimator.runtimeAnimatorController == null ||
             string.IsNullOrWhiteSpace(stateName))
@@ -549,6 +582,13 @@ public class EnemyActor : MonoBehaviour, IFogVisibilityResponder
         int stateHash = Animator.StringToHash(stateName);
         if (characterAnimator.HasState(0, stateHash))
         {
+            if (ShouldLockBossExplorationAnimation &&
+                characterAnimator.GetCurrentAnimatorStateInfo(0)
+                    .shortNameHash == stateHash)
+            {
+                return;
+            }
+
             characterAnimator.Play(stateHash, 0, 0f);
         }
     }
@@ -650,21 +690,27 @@ public class EnemyActor : MonoBehaviour, IFogVisibilityResponder
                 return new EnemyIntentResolution(
                     0,
                     0,
-                    $"喝酒：强化，下次普攻 +{nextAttackBonus}"
+                    GameLocalization.Get(
+                        "enemy.action.drink_strengthen",
+                        nextAttackBonus
+                    )
                 );
 
             case DrunkenRaiderDrinkOutcome.SelfDamage:
                 return new EnemyIntentResolution(
                     0,
                     definition.RaiderSelfDamage,
-                    $"喝酒：自伤 -{definition.RaiderSelfDamage}"
+                    GameLocalization.Get(
+                        "enemy.action.drink_self_damage",
+                        definition.RaiderSelfDamage
+                    )
                 );
 
             default:
                 return new EnemyIntentResolution(
                     0,
                     0,
-                    "喝酒：晕眩，本回合无事发生"
+                    GameLocalization.Get("enemy.action.drink_stunned")
                 );
         }
     }
@@ -676,14 +722,21 @@ public class EnemyActor : MonoBehaviour, IFogVisibilityResponder
             return new EnemyIntentResolution(
                 0,
                 0,
-                $"携带 {StolenNumberEscrow} 点逃跑",
+                GameLocalization.Get(
+                    "enemy.action.escape",
+                    StolenNumberEscrow
+                ),
                 escapes: true
             );
         }
 
         if (CurrentIntent != EnemyIntentType.Steal)
         {
-            return new EnemyIntentResolution(0, 0, "等待");
+            return new EnemyIntentResolution(
+                0,
+                0,
+                GameLocalization.Get("enemy.action.wait")
+            );
         }
 
         return new EnemyIntentResolution(
@@ -706,31 +759,45 @@ public class EnemyActor : MonoBehaviour, IFogVisibilityResponder
                 return new EnemyIntentResolution(
                     definition.AttackDamage,
                     0,
-                    $"普攻：-{definition.AttackDamage}"
+                    GameLocalization.Get(
+                        "enemy.action.attack",
+                        definition.AttackDamage
+                    )
                 );
 
             case EnemyIntentType.Charge:
-                return new EnemyIntentResolution(0, 0, "蓄力");
+                return new EnemyIntentResolution(
+                    0,
+                    0,
+                    GameLocalization.Get("enemy.action.charge")
+                );
 
             case EnemyIntentType.Special:
                 return new EnemyIntentResolution(
                     definition.SpecialDamage,
                     0,
-                    $"强力击：-{definition.SpecialDamage}"
+                    GameLocalization.Get(
+                        "enemy.action.heavy_attack",
+                        definition.SpecialDamage
+                    )
                 );
 
             case EnemyIntentType.StealItem:
                 return new EnemyIntentResolution(
                     0,
                     0,
-                    "尝试偷取随机道具",
+                    GameLocalization.Get("enemy.action.try_steal_item"),
                     attemptsItemSteal: true,
                     noItemFallbackDamage: definition.BossNoItemDamage,
                     stunsPlayerOnFallback: true
                 );
 
             default:
-                return new EnemyIntentResolution(0, 0, "等待");
+                return new EnemyIntentResolution(
+                    0,
+                    0,
+                    GameLocalization.Get("enemy.action.wait")
+                );
         }
     }
 
@@ -752,6 +819,10 @@ public class EnemyActor : MonoBehaviour, IFogVisibilityResponder
             battleRound,
             0
         );
-        return $"{reward}（第{battleRound}回合）";
+        return GameLocalization.Get(
+            "enemy.reward.turn_result",
+            reward,
+            battleRound
+        );
     }
 }
