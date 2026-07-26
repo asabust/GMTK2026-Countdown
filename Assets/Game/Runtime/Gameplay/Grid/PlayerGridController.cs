@@ -32,6 +32,7 @@ public class PlayerGridController : GridEntity
     private bool isAnimating;
     private bool contactLocked;
     private bool externalInputLocked;
+    private bool menuInputLocked;
 
     public override GridOccupantType OccupantType => GridOccupantType.Player;
     public bool CanAcceptMovement =>
@@ -39,7 +40,8 @@ public class PlayerGridController : GridEntity
         IsPlaced &&
         !isAnimating &&
         !contactLocked &&
-        !externalInputLocked;
+        !externalInputLocked &&
+        !menuInputLocked;
 
     public event Action<Vector2Int, Vector2Int> MoveCommitted;
     public event Action<Vector2Int, Vector2Int> MoveCompleted;
@@ -104,6 +106,17 @@ public class PlayerGridController : GridEntity
     public void SetExternalInputLocked(bool locked)
     {
         externalInputLocked = locked;
+    }
+
+    public void SetMenuInputLocked(bool locked)
+    {
+        menuInputLocked = locked;
+        if (!locked)
+        {
+            inputArmed =
+                moveAction == null ||
+                moveAction.ReadValue<Vector2>().sqrMagnitude < 0.01f;
+        }
     }
 
     public void CompleteContact()
@@ -214,6 +227,7 @@ public class PlayerGridController : GridEntity
         boundScene = map.gameObject.scene;
         contactLocked = false;
         externalInputLocked = false;
+        menuInputLocked = false;
 
         if (!gridMap.TryPlaceEntity(
                 this,
@@ -335,6 +349,7 @@ public class PlayerGridController : GridEntity
     {
         isAnimating = true;
         PlayAnimation(walkAnimationState);
+        AudioManager.Instance?.PlaySFX(AudioName.SfxPlayerFootstep);
         Vector3 start = transform.position;
         Vector3 end = gridMap.GetCellCenterWorld(destination);
         float animationDuration = GetAnimationDuration(walkAnimationState);

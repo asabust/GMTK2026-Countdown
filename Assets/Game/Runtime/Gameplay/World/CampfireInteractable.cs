@@ -1,4 +1,5 @@
 using Game.Runtime.Core;
+using Game.Runtime.Data;
 using UnityEngine;
 
 public sealed class CampfireInteractable : WorldInteractable
@@ -16,6 +17,7 @@ public sealed class CampfireInteractable : WorldInteractable
     {
         context = interaction;
         submitted = false;
+        AudioManager.Instance?.PlaySFX(AudioName.UiInteractRest);
 
         CampfirePanel panel = UIManager.Instance?.Open<CampfirePanel>(
             new CampfireRequest(

@@ -208,6 +208,13 @@ public sealed class ShopPanel : UIPanel
             _ => GameLocalization.Get("shop.purchase.unavailable")
         };
         ToastPanel.Show(feedback);
+        AudioManager.Instance?.PlaySFX(
+            result == ShopPurchaseResult.Success
+                ? AudioName.UiBuy
+                : result == ShopPurchaseResult.SoldOut
+                    ? AudioName.UiSoldOut
+                    : AudioName.UiNotEnough
+        );
         RefreshOffers();
         RefreshSelection();
     }

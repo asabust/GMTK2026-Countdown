@@ -75,6 +75,8 @@ public class GameManager : Singleton<GameManager>
     public void GameOver()
     {
         SetGamePhase(GamePhase.GameOver);
+        AudioManager.Instance?.PlaySFX(AudioName.SfxPlayerDeath);
+        AudioManager.Instance?.PlaySFX(AudioName.UiDeathPanel);
         UIManager.Instance?.Open<GameOverPanel>(
             new GameOverRequest(
                 GameLocalization.Get("game_over.reason.default"),

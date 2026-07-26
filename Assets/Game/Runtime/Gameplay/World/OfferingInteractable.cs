@@ -1,4 +1,5 @@
 using System;
+using Game.Runtime.Data;
 using UnityEngine;
 
 public enum OfferingResolutionStatus
@@ -42,6 +43,7 @@ public sealed class OfferingInteractable : WorldInteractable
         inventory = interaction.Player.GetComponent<PlayerInventory>();
         runStats = interaction.Player.GetComponent<PlayerRunStats>();
         resolved = false;
+        AudioManager.Instance?.PlaySFX(AudioName.UiInteractOffering);
 
         if (inventory == null || runStats == null)
         {

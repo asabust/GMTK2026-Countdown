@@ -78,6 +78,13 @@ public sealed class TreasureInteractable : WorldInteractable
             "treasure.received_kind",
             rewardName
         ));
+        AudioManager.Instance?.PlaySFX(
+            rewardType == TreasureRewardType.Skill
+                ? AudioName.UiGetSkill
+                : collectibleReward?.Kind == CollectibleKind.Relic
+                    ? AudioName.UiGetCollectible
+                    : AudioName.UiGetItem
+        );
         interaction.Complete();
         return true;
     }
