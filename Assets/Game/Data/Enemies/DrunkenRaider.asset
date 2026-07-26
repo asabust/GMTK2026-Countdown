@@ -11,23 +11,29 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 72ff22544e534d97b3598dc54fd2029d, type: 3}
   m_Name: DrunkenRaider
-  m_EditorClassIdentifier:
+  m_EditorClassIdentifier: 
   enemyId: DrunkenRaider
   displayName: "\u53D1\u6761\u6CB9\u63A0\u593A\u8005"
-  minHP: 15
-  maxHP: 18
+  minHP: 12
+  maxHP: 15
   canRollHP: 1
-  fixedHP: 17
+  fixedHP: 1
   rewardNumber: 0
   rewardMode: 1
   attackDamage: 4
   specialDamage: 0
   behaviorType: 1
-  intentSequence:
-  - 1
-  - 2
+  intentSequence: 0100000002000000
   raiderNextAttackBonus: 1
   raiderSelfDamage: 2
   raiderStrengthenWeight: 1
   raiderSelfDamageWeight: 1
   raiderStunnedWeight: 1
+  hamsterStealAmount: 3
+  healthRewardMultiplier: 0.5
+  horrorExplosionMultiplier: 0.8
+  itemDropTable: []
+  itemDropCount: 1
+  bossPhase: 0
+  bossNextPhase: {fileID: 0}
+  bossNoItemDamage: 5

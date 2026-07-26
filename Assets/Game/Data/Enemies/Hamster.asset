@@ -14,8 +14,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   enemyId: Hamster
   displayName: "\u9F13\u9F13\u4ED3\u9F20"
-  minHP: 7
-  maxHP: 13
+  minHP: 9
+  maxHP: 15
   canRollHP: 1
   fixedHP: 10
   rewardNumber: 0
