@@ -1,4 +1,5 @@
 using Game.Runtime.Core;
+using Game.Runtime.Data;
 using UnityEngine;
 
 public enum TreasureRewardType
@@ -13,23 +14,16 @@ public sealed class TreasureInteractable : WorldInteractable
     [SerializeField] private SkillDefinition skill;
     [SerializeField] private CollectibleDefinition collectibleReward;
 
-    private WorldInteractionContext context;
-    private PlayerSkillController skills;
-    private PlayerInventory inventory;
-    private bool submitted;
-
     public TreasureRewardType RewardType => rewardType;
     public SkillDefinition Skill => skill;
     public CollectibleDefinition CollectibleReward => collectibleReward;
 
     protected override bool OpenInteraction(WorldInteractionContext interaction)
     {
-        context = interaction;
-        submitted = false;
-
         if (rewardType == TreasureRewardType.Collectible)
         {
-            inventory = interaction.Player.GetComponent<PlayerInventory>();
+            PlayerInventory inventory =
+                interaction.Player.GetComponent<PlayerInventory>();
             if (inventory == null)
             {
                 Debug.LogError(
@@ -39,75 +33,52 @@ public sealed class TreasureInteractable : WorldInteractable
                 return false;
             }
 
-            return UIManager.Instance?.Open<CampfirePanel>(
-                new TreasureRequest(
-                    collectibleReward,
-                    inventory,
-                    ClaimCollectible,
-                    Leave
-                )
-            ) != null;
+            bool received =
+                inventory.TryAdd(collectibleReward) ==
+                InventoryAddResult.Success;
+            return FinishReward(
+                interaction,
+                received,
+                collectibleReward?.DisplayName
+            );
         }
 
-        skills = interaction.Player.GetComponent<PlayerSkillController>();
+        PlayerSkillController skills =
+            interaction.Player.GetComponent<PlayerSkillController>();
         if (skills == null)
         {
             skills = interaction.Player.gameObject
                 .AddComponent<PlayerSkillController>();
         }
 
-        return UIManager.Instance?.Open<CampfirePanel>(
-            new TreasureRequest(skill, skills, Learn, Leave)
-        ) != null;
+        return FinishReward(
+            interaction,
+            skills.Learn(skill),
+            skill?.DisplayName
+        );
     }
 
-    protected override void CloseInteraction()
-    {
-        UIManager.Instance?.Close<CampfirePanel>();
-        context = null;
-        skills = null;
-        inventory = null;
-        submitted = false;
-    }
+    protected override void CloseInteraction() { }
 
-    private bool Learn()
+    private bool FinishReward(
+        WorldInteractionContext interaction,
+        bool received,
+        string rewardName
+    )
     {
-        if (submitted || context == null || skills == null)
+        if (!received)
         {
+            ToastPanel.Show(GameLocalization.Get(
+                "treasure.receive_failed"
+            ));
             return false;
         }
 
-        submitted = true;
-        bool learned = skills.Learn(skill);
-        if (learned)
-        {
-            context.Complete();
-        }
-        return learned;
-    }
-
-    private bool ClaimCollectible()
-    {
-        if (submitted || context == null || inventory == null)
-        {
-            return false;
-        }
-
-        submitted = true;
-        bool received =
-            inventory.TryAdd(collectibleReward) ==
-            InventoryAddResult.Success;
-        if (received)
-        {
-            context.Complete();
-        }
-        return received;
-    }
-
-    private void Leave()
-    {
-        if (submitted || context == null) return;
-        submitted = true;
-        context.Complete();
+        ToastPanel.Show(GameLocalization.Get(
+            "treasure.received_kind",
+            rewardName
+        ));
+        interaction.Complete();
+        return true;
     }
 }

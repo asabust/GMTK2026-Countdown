@@ -1,4 +1,3 @@
-using System;
 using Game.Runtime.Data;
 using TMPro;
 using UnityEngine;
@@ -6,23 +5,25 @@ using UnityEngine.UI;
 
 public class TitlePanel : MonoBehaviour
 {
-    public Button startButton;
-    [SerializeField] private Button languageButton;
+    [SerializeField] private Button startButton;
+    [SerializeField] private Button quitButton;
+    [SerializeField] private Button settingsButton;
     [SerializeField] private TMP_Text startButtonText;
-    [SerializeField] private TMP_Text languageButtonText;
+    [SerializeField] private TMP_Text quitButtonText;
+    [SerializeField] private TMP_Text settingsButtonText;
 
     private void Start()
     {
-        if (languageButton == null)
-        {
-            languageButton = transform.Find("Setting")?.GetComponent<Button>();
-        }
+        startButton ??= transform.Find("NewGame")?.GetComponent<Button>();
+        quitButton ??= transform.Find("Quit")?.GetComponent<Button>();
+        settingsButton ??= transform.Find("Setting")?.GetComponent<Button>();
         startButtonText ??= startButton?.GetComponentInChildren<TMP_Text>(true);
-        languageButtonText ??=
-            languageButton?.GetComponentInChildren<TMP_Text>(true);
+        quitButtonText ??= quitButton?.GetComponentInChildren<TMP_Text>(true);
+        settingsButtonText ??=
+            settingsButton?.GetComponentInChildren<TMP_Text>(true);
 
         startButton?.onClick.AddListener(StartNewGame);
-        languageButton?.onClick.AddListener(CycleLanguage);
+        quitButton?.onClick.AddListener(QuitGame);
         GameLocalization.LanguageChanged += RefreshText;
         RefreshText();
     }
@@ -30,7 +31,7 @@ public class TitlePanel : MonoBehaviour
     private void OnDestroy()
     {
         startButton?.onClick.RemoveListener(StartNewGame);
-        languageButton?.onClick.RemoveListener(CycleLanguage);
+        quitButton?.onClick.RemoveListener(QuitGame);
         GameLocalization.LanguageChanged -= RefreshText;
     }
 
@@ -39,15 +40,9 @@ public class TitlePanel : MonoBehaviour
         GameManager.Instance?.StartNewGame();
     }
 
-    private static void CycleLanguage()
+    private static void QuitGame()
     {
-        Language next = GameLocalization.CurrentLanguage switch
-        {
-            Language.Chinese => Language.English,
-            Language.English => Language.Japanese,
-            _ => Language.Chinese
-        };
-        GameLocalization.SetLanguage(next);
+        GameManager.Instance?.QuitGame();
     }
 
     private void RefreshText()
@@ -56,14 +51,14 @@ public class TitlePanel : MonoBehaviour
         {
             startButtonText.text = GameLocalization.Get("title.new_game");
         }
-        if (languageButtonText != null)
+        if (quitButtonText != null)
         {
-            languageButtonText.text = GameLocalization.Get(
-                "title.language",
-                GameLocalization.Get(
-                    $"language.{GameLocalization.CurrentLanguage.ToString().ToLowerInvariant()}"
-                )
-            );
+            quitButtonText.text = GameLocalization.Get("title.quit");
+        }
+        if (settingsButtonText != null)
+        {
+            settingsButtonText.text =
+                GameLocalization.Get("title.settings");
         }
     }
 }

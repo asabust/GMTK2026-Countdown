@@ -949,7 +949,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 93ba5789df174ff29904fb6269924d3f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  initialValue: 100
+  initialValue: 50
   minimumValue: -1
   maximumValue: 100
 --- !u!114 &1104470235
@@ -1375,7 +1375,7 @@ Transform:
   m_GameObject: {fileID: 1537324989}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -0.53197974, y: 1.3660922, z: 468.90533}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []

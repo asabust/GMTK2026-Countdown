@@ -3,13 +3,13 @@ using UnityEngine;
 
 public sealed class WorldInteractionContext
 {
-    private readonly Action complete;
+    private readonly Action<bool> complete;
 
     public WorldInteractionContext(
         PlayerGridController player,
         NumberResource numberResource,
         Vector3 worldPosition,
-        Action complete
+        Action<bool> complete
     )
     {
         Player = player;
@@ -22,9 +22,9 @@ public sealed class WorldInteractionContext
     public NumberResource NumberResource { get; }
     public Vector3 WorldPosition { get; }
 
-    public void Complete()
+    public void Complete(bool consume = true)
     {
-        complete?.Invoke();
+        complete?.Invoke(consume);
     }
 }
 
