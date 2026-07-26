@@ -242,8 +242,8 @@ public class EnemyActor : MonoBehaviour, IFogVisibilityResponder
             return;
         }
 
-        EnsureWorldUI();
-        worldUI?.ShowIntent(description);
+        worldUI?.HideIntent();
+        ToastPanel.Show(description);
     }
 
     public void PlayCurrentIntentAnimation()
@@ -372,7 +372,14 @@ public class EnemyActor : MonoBehaviour, IFogVisibilityResponder
             return false;
         }
 
+        int previousHP = CurrentHP;
         CurrentHP = Mathf.Max(0, CurrentHP - amount);
+        int actualDamage = previousHP - CurrentHP;
+        GameHUDPanel.Active?.ShowWorldDelta(
+            -actualDamage,
+            NumberChangeReason.Damage,
+            transform.position
+        );
         HealthChanged?.Invoke();
         ShowCombatInformation(projectedRewardRound);
         return CurrentHP == 0;

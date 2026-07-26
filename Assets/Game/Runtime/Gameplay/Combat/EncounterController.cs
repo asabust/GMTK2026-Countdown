@@ -789,7 +789,7 @@ public class EncounterController : MonoBehaviour
         isTrackingNumberLoss = false;
         UIManager.Instance?.Close<BattleActionPanel>();
         playerController.SetExternalInputLocked(true);
-        rewardWorldPosition = defeatedEnemy.transform.position;
+        rewardWorldPosition = transform.position;
         currentBattleLoot = battleLoot;
         successfulGreedAttempts = 0;
         currentGreedyWinnings = 0;

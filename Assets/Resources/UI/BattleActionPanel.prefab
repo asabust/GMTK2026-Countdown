@@ -2869,7 +2869,7 @@ GameObject:
   - component: {fileID: 3520154016295639212}
   - component: {fileID: 4034081148565104963}
   m_Layer: 5
-  m_Name: DescriptionFrame
+  m_Name: SkillDescriptionFrame
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -3635,12 +3635,14 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   layer: 2
   previewText: {fileID: 7779691899207199208}
-  feedbackText: {fileID: 407903030563076084}
   primaryMenu: {fileID: 7766373176452589997}
   attackButton: {fileID: 6483383522740448700}
   attackButtonLabel: {fileID: 1993750964132177114}
   itemButton: {fileID: 2251690937204976212}
   itemButtonLabel: {fileID: 8082828711185060466}
+  skillDescriptionFrame: {fileID: 5149393190301932665}
+  skillNameText: {fileID: 1470748450623959401}
+  skillDescriptionText: {fileID: 5514260121371727941}
   struggleButton: {fileID: 0}
   itemMenu: {fileID: 1888133206822780960}
   itemSlotButtons:
@@ -3663,6 +3665,7 @@ MonoBehaviour:
   - {fileID: 5778697455755028330}
   - {fileID: 6849356664061315208}
   - {fileID: 6287145103475515612}
+  itemDescriptionFrame: {fileID: 2865968326558034010}
   itemNameText: {fileID: 3878062000184346850}
   itemDescriptionText: {fileID: 910538929777197514}
   backButton: {fileID: 1387217988680530904}
@@ -3683,7 +3686,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!224 &6243407166574875842
 RectTransform:
   m_ObjectHideFlags: 0

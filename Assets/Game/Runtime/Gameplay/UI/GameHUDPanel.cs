@@ -6,6 +6,8 @@ using UnityEngine.UI;
 
 public class GameHUDPanel : UIPanel
 {
+    public static GameHUDPanel Active { get; private set; }
+
     private readonly struct RelicSlotData
     {
         public RelicSlotData(CollectibleStack stack, int copyIndex)
@@ -60,6 +62,7 @@ public class GameHUDPanel : UIPanel
 
     public override void OnOpen(object data = null)
     {
+        Active = this;
         BindNumberResource(NumberResource.Instance);
         BindInventory(
             NumberResource.Instance != null
@@ -70,6 +73,10 @@ public class GameHUDPanel : UIPanel
 
     public override void OnClose()
     {
+        if (Active == this)
+        {
+            Active = null;
+        }
         BindNumberResource(null);
         BindInventory(null);
         inventoryTooltip?.Hide();
@@ -78,6 +85,10 @@ public class GameHUDPanel : UIPanel
 
     private void OnDestroy()
     {
+        if (Active == this)
+        {
+            Active = null;
+        }
         settingsButton?.onClick.RemoveListener(HandleSettingsClicked);
         BindNumberResource(null);
         BindInventory(null);
@@ -311,6 +322,25 @@ public class GameHUDPanel : UIPanel
 
         pendingChanges.Enqueue(change);
         TryPlayNextDelta();
+    }
+
+    public void ShowWorldDelta(
+        int delta,
+        NumberChangeReason reason,
+        Vector3 worldPosition
+    )
+    {
+        if (delta == 0)
+        {
+            return;
+        }
+
+        ShowDelta(new NumberChange(
+            0,
+            delta,
+            reason,
+            worldPosition
+        ));
     }
 
     private void TryPlayNextDelta()
