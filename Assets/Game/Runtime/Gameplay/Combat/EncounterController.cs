@@ -742,7 +742,10 @@ public class EncounterController : MonoBehaviour
             );
         actingEnemy.PlaySpecialAnimation();
         AudioManager.Instance?.PlaySFX(AudioName.SfxBoxExplode);
-        actingEnemy.ShowIntentResolution($"负荷爆炸：-{explosionDamage}");
+        actingEnemy.ShowIntentResolution(GameLocalization.Get(
+            "enemy.action.overload_explosion",
+            explosionDamage
+        ));
 
         IncomingAttackResolution attackResolution =
             playerRunStats != null

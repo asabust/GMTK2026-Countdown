@@ -681,7 +681,10 @@ public class EnemyActor : MonoBehaviour, IFogVisibilityResponder
             return new EnemyIntentResolution(
                 damage,
                 0,
-                $"普攻：-{damage}"
+                GameLocalization.Get(
+                    "enemy.action.basic_attack",
+                    damage
+                )
             );
         }
 
