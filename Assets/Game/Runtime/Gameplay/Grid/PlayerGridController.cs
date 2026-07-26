@@ -14,6 +14,7 @@ public class PlayerGridController : GridEntity
     [SerializeField, Min(0f)] private float moveDuration = 0.12f;
     [SerializeField] private string idleAnimationState = "Player_idle";
     [SerializeField] private string walkAnimationState = "player_walk";
+    [SerializeField] private string attackAnimationState = "player_attack";
 
     private InputAction moveAction;
     private GridMap gridMap;
@@ -105,6 +106,31 @@ public class PlayerGridController : GridEntity
     {
         contactLocked = false;
         inputArmed = moveAction == null || moveAction.ReadValue<Vector2>().sqrMagnitude < 0.01f;
+    }
+
+    public IEnumerator PlayAttackAnimation()
+    {
+        bool wasAnimating = isAnimating;
+        isAnimating = true;
+        PlayAnimation(attackAnimationState);
+
+        try
+        {
+            float duration = GetAnimationDuration(attackAnimationState);
+            if (duration > 0f)
+            {
+                yield return new WaitForSeconds(duration);
+            }
+            else
+            {
+                yield return null;
+            }
+        }
+        finally
+        {
+            PlayAnimation(idleAnimationState);
+            isAnimating = wasAnimating;
+        }
     }
 
     private void OnSceneLoaded(Scene scene, LoadSceneMode mode)

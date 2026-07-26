@@ -602,7 +602,7 @@ SpriteRenderer:
   m_SortingLayerID: 768473503
   m_SortingLayer: 1
   m_SortingOrder: 10
-  m_Sprite: {fileID: 21300000, guid: 3bf02a4fe965c45f1be698ea174a0ff0, type: 3}
+  m_Sprite: {fileID: 21300000, guid: 75523dca1b7f1475f930a085fce5eea5, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_FlipX: 0
   m_FlipY: 0
@@ -918,6 +918,7 @@ MonoBehaviour:
   moveDuration: 0.12
   idleAnimationState: Player_idle
   walkAnimationState: player_walk
+  attackAnimationState: player_attack
 --- !u!4 &1104470233
 Transform:
   m_ObjectHideFlags: 0
@@ -1361,7 +1362,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7c95484e092a348038ba124febff0a0b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  firstGameScene: GameScene
+  firstGameScene: GameSceneOrigin
   titleScene: TitleScene
 --- !u!4 &1537324991
 Transform:

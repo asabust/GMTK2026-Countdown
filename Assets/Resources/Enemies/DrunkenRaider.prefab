@@ -70,6 +70,10 @@ MonoBehaviour:
   bossPhase2IdleAnimationState: Boss_idle2
   bossPhase2AttackAnimationState: Boss_attack2
   bossPhase2SpecialAnimationState: Boss_attack2
+  bossLockedIdleAnimationState: Boss_idle
+  hitFlashCount: 2
+  hitFlashDuration: 0.14
+  hitFlashRecoveryDuration: 0.1
 --- !u!1 &100004
 GameObject:
   m_ObjectHideFlags: 0

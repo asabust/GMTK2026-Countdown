@@ -302,13 +302,13 @@ public class EncounterController : MonoBehaviour
         battleRound++;
         CurrentEnemy.ShowCombatInformation(battleRound);
         int damage = CurrentBasicAttackDamage;
-        bool defeated = CurrentEnemy.ApplyDamage(damage);
+        EnemyActor attackedEnemy = CurrentEnemy;
         playerRunStats?.ConsumeBasicAttackEmpowerment();
         playerRunStats?.CompletePlayerAction();
         playerSkills?.CompletePlayerAction();
         UIManager.Instance?.Close<BattleActionPanel>();
         enemyTurnRoutine = StartCoroutine(
-            ResolvePlayerDamagePresentation(CurrentEnemy, defeated)
+            ResolvePlayerAttackSequence(attackedEnemy, damage, 1)
         );
 
         return true;
@@ -369,6 +369,56 @@ public class EncounterController : MonoBehaviour
         if (damagedEnemy != null)
         {
             yield return damagedEnemy.PlayHitFlash();
+        }
+
+        enemyTurnRoutine = null;
+        if (CurrentEnemy == null || CurrentEnemy != damagedEnemy)
+        {
+            yield break;
+        }
+
+        if (defeated)
+        {
+            ResolveDefeatedEnemy();
+            yield break;
+        }
+
+        enemyTurnRoutine = StartCoroutine(ResolveEnemyTurn());
+    }
+
+    private IEnumerator ResolvePlayerAttackSequence(
+        EnemyActor damagedEnemy,
+        int damage,
+        int hitCount,
+        int killRestore = 0
+    )
+    {
+        bool defeated = false;
+        int resolvedHits = Mathf.Max(1, hitCount);
+        for (int i = 0; i < resolvedHits && !defeated; i++)
+        {
+            if (playerController != null)
+            {
+                yield return playerController.PlayAttackAnimation();
+            }
+
+            if (damagedEnemy == null || CurrentEnemy != damagedEnemy)
+            {
+                enemyTurnRoutine = null;
+                yield break;
+            }
+
+            defeated = damagedEnemy.ApplyDamage(damage);
+            yield return damagedEnemy.PlayHitFlash();
+        }
+
+        if (defeated && killRestore > 0 && numberResource != null)
+        {
+            numberResource.Add(
+                killRestore,
+                NumberChangeReason.Skill,
+                transform.position
+            );
         }
 
         enemyTurnRoutine = null;
@@ -1091,8 +1141,9 @@ public class EncounterController : MonoBehaviour
         battleRound++;
         CurrentEnemy.ShowCombatInformation(battleRound);
 
-        bool defeated = false;
         bool dealtDamage = false;
+        int hitCount = 1;
+        int killRestore = 0;
         switch (definition.SkillType)
         {
             case PlayerSkillType.Bloodlust:
@@ -1104,41 +1155,33 @@ public class EncounterController : MonoBehaviour
 
             case PlayerSkillType.Parasite:
                 dealtDamage = definition.BaseDamage > 0;
-                defeated = CurrentEnemy.ApplyDamage(definition.BaseDamage);
-                if (defeated && definition.KillRestore > 0)
-                {
-                    numberResource.Add(
-                        definition.KillRestore,
-                        NumberChangeReason.Skill,
-                        transform.position
-                    );
-                }
+                killRestore = definition.KillRestore;
                 break;
 
             case PlayerSkillType.Revenge:
                 dealtDamage = definition.BaseDamage > 0;
-                int hitCount = definition.MinimumHits;
+                hitCount = definition.MinimumHits;
                 if (definition.MaximumHits > definition.MinimumHits &&
                     GameRandom.Chance(definition.ExtraHitChance))
                 {
                     hitCount = definition.MaximumHits;
                 }
-                for (int i = 0; i < hitCount && !defeated; i++)
-                {
-                    defeated = CurrentEnemy.ApplyDamage(
-                        definition.BaseDamage
-                    );
-                }
                 break;
         }
 
+        EnemyActor attackedEnemy = CurrentEnemy;
         playerRunStats?.CompletePlayerAction();
         playerSkills?.CompletePlayerAction(definition);
         UIManager.Instance?.Close<BattleActionPanel>();
         if (dealtDamage)
         {
             enemyTurnRoutine = StartCoroutine(
-                ResolvePlayerDamagePresentation(CurrentEnemy, defeated)
+                ResolvePlayerAttackSequence(
+                    attackedEnemy,
+                    definition.BaseDamage,
+                    hitCount,
+                    killRestore
+                )
             );
         }
         else
