@@ -17,15 +17,13 @@ MonoBehaviour:
   attackIncrease: 1
   outcomes:
   - outcome: 0
-    weight: 10
+    weight: 35
   - outcome: 1
-    weight: 30
-  - outcome: 2
     weight: 20
   - outcome: 3
-    weight: 20
+    weight: 30
   - outcome: 4
-    weight: 20
+    weight: 15
   itemPool:
   - collectible: {fileID: 11400000, guid: 47840a1cb68e44f43b0c652588562525, type: 2}
     weight: 1
