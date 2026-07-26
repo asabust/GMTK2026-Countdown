@@ -229,6 +229,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   layer: 2
+  titleText: {fileID: 8957127269103736270}
   amountSlider: {fileID: 4579879762565022000}
   amountText: {fileID: 7827070023256515604}
   dialogueText: {fileID: 172520579626762275}

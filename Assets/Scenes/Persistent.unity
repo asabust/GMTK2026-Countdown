@@ -858,7 +858,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3d9f29020e7f44fdbd59aa366a478247, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  basicAttackCost: 2
+  basicAttackCost: 1
   basicAttackDamage: 3
   struggleDamage: 1
   enemyActionDuration: 0.45

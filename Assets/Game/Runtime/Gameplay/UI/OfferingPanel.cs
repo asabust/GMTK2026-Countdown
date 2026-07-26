@@ -30,6 +30,7 @@ public sealed class OfferingRequest
 
 public sealed class OfferingPanel : UIPanel
 {
+    [SerializeField] private TMP_Text titleText;
     [SerializeField] private Slider amountSlider;
     [SerializeField] private TMP_Text amountText;
     [SerializeField] private TMP_Text dialogueText;
@@ -51,6 +52,8 @@ public sealed class OfferingPanel : UIPanel
     {
         request = data as OfferingRequest;
         resolved = false;
+        if (titleText != null)
+            titleText.text = GameLocalization.Get("offering.title");
         if (confirmButtonText != null)
             confirmButtonText.text = GameLocalization.Get(
                 "offering.button.confirm"
