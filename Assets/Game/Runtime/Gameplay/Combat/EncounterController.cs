@@ -44,6 +44,9 @@ public class EncounterController : MonoBehaviour
     private int successfulGreedAttempts;
     private int currentGreedyWinnings;
     private bool hasBrokenMirror;
+    private int consecutiveGreedFailures;
+    private int consecutiveGreedSuccesses;
+    private bool greedChosenThisBattle;
     private bool hasUsedStruggle;
     private int battleRound;
 
@@ -85,6 +88,9 @@ public class EncounterController : MonoBehaviour
         successfulGreedAttempts = 0;
         currentGreedyWinnings = 0;
         hasBrokenMirror = false;
+        consecutiveGreedFailures = 0;
+        consecutiveGreedSuccesses = 0;
+        greedChosenThisBattle = false;
         hasUsedStruggle = false;
         battleRound = 0;
         battleStatusWorldUI?.SetCombatVisible(false);
@@ -498,7 +504,8 @@ public class EncounterController : MonoBehaviour
                     false,
                     damageToPlayer
                 );
-        if (attackResolution.FinalDamage > 0)
+        bool playerTookDamage = attackResolution.FinalDamage > 0;
+        if (playerTookDamage)
         {
             numberResource.TakeDamage(
                 attackResolution.FinalDamage,
@@ -524,6 +531,16 @@ public class EncounterController : MonoBehaviour
             enemyActionDuration,
             actingEnemy.GetCurrentIntentAnimationDuration()
         );
+        if (playerTookDamage && playerController != null)
+        {
+            float injuredDuration =
+                playerController.GetInjuredAnimationDuration();
+            yield return playerController.PlayInjuredAnimation();
+            presentationDuration = Mathf.Max(
+                0f,
+                presentationDuration - injuredDuration
+            );
+        }
         if (presentationDuration > 0f)
         {
             yield return new WaitForSeconds(presentationDuration);
@@ -601,6 +618,7 @@ public class EncounterController : MonoBehaviour
     private void HandlePlayerDefeated()
     {
         isTrackingNumberLoss = false;
+        playerSkills?.ClearCooldowns();
         UIManager.Instance?.Close<BattleActionPanel>();
         battleStatusWorldUI?.SetCombatVisible(false);
         CurrentEnemy?.WorldUI?.HideIntent();
@@ -672,6 +690,7 @@ public class EncounterController : MonoBehaviour
     private void ResolveBossVictory(EnemyActor defeatedBoss)
     {
         isTrackingNumberLoss = false;
+        playerSkills?.ClearCooldowns();
         SetPhase(EncounterPhase.Reward);
         battleStatusWorldUI?.SetCombatVisible(false);
         defeatedBoss?.WorldUI?.HideIntent();
@@ -708,7 +727,8 @@ public class EncounterController : MonoBehaviour
                     false,
                     explosionDamage
                 );
-        if (attackResolution.FinalDamage > 0)
+        bool playerTookDamage = attackResolution.FinalDamage > 0;
+        if (playerTookDamage)
         {
             numberResource.TakeDamage(
                 attackResolution.FinalDamage,
@@ -720,6 +740,16 @@ public class EncounterController : MonoBehaviour
             enemyActionDuration,
             actingEnemy.GetSpecialAnimationDuration()
         );
+        if (playerTookDamage && playerController != null)
+        {
+            float injuredDuration =
+                playerController.GetInjuredAnimationDuration();
+            yield return playerController.PlayInjuredAnimation();
+            presentationDuration = Mathf.Max(
+                0f,
+                presentationDuration - injuredDuration
+            );
+        }
         if (presentationDuration > 0f)
         {
             yield return new WaitForSeconds(presentationDuration);
@@ -763,7 +793,12 @@ public class EncounterController : MonoBehaviour
         currentBattleLoot = battleLoot;
         successfulGreedAttempts = 0;
         currentGreedyWinnings = 0;
+        greedChosenThisBattle = false;
         hasBrokenMirror = HasBrokenMirror();
+        if (HasAnyRelic())
+        {
+            consecutiveGreedFailures = 0;
+        }
         CurrentEnemy = null;
         battleStatusWorldUI?.SetCombatVisible(false);
         defeatedEnemy.ReleaseAndDestroy();
@@ -783,7 +818,7 @@ public class EncounterController : MonoBehaviour
                 defeatedEnemy.Definition.RewardMode,
                 battleLoot,
                 itemDropSummary,
-                GetEffectiveGreedySuccessChance(),
+                GetInitialGreedySuccessChance(),
                 GetEffectiveGreedyMultiplier(),
                 ResolveRewardChoice,
                 CompleteReward
@@ -868,8 +903,13 @@ public class EncounterController : MonoBehaviour
             return lockedRewardResult;
         }
 
-        float effectiveChance = successfulGreedAttempts == 0
-            ? GetEffectiveGreedySuccessChance()
+        bool isInitialGreed = successfulGreedAttempts == 0;
+        if (isInitialGreed)
+        {
+            greedChosenThisBattle = true;
+        }
+        float effectiveChance = isInitialGreed
+            ? GetInitialGreedySuccessChance()
             : GetMirrorAdditionalGreedChance(
                 successfulGreedAttempts
             );
@@ -877,6 +917,18 @@ public class EncounterController : MonoBehaviour
         bool succeeded = GameRandom.Chance(effectiveChance);
         if (!succeeded)
         {
+            if (isInitialGreed)
+            {
+                consecutiveGreedSuccesses = 0;
+                if (!HasAnyRelic())
+                {
+                    consecutiveGreedFailures++;
+                }
+                else
+                {
+                    consecutiveGreedFailures = 0;
+                }
+            }
             rewardChoiceResolved = true;
             lockedRewardResult = new BattleRewardResult(
                 choice,
@@ -884,6 +936,12 @@ public class EncounterController : MonoBehaviour
                 currentGreedyWinnings
             );
             return lockedRewardResult;
+        }
+
+        if (isInitialGreed)
+        {
+            consecutiveGreedFailures = 0;
+            consecutiveGreedSuccesses++;
         }
 
         int independentGain = Mathf.FloorToInt(
@@ -927,6 +985,11 @@ public class EncounterController : MonoBehaviour
             );
         }
 
+        if (greedChosenThisBattle)
+        {
+            playerInventory?.ConsumeGreedBattleDurability();
+        }
+        playerSkills?.ClearCooldowns();
         playerController.SetExternalInputLocked(false);
         playerController.CompleteContact();
         accumulatedNumberLoss = 0;
@@ -936,6 +999,7 @@ public class EncounterController : MonoBehaviour
         successfulGreedAttempts = 0;
         currentGreedyWinnings = 0;
         hasBrokenMirror = false;
+        greedChosenThisBattle = false;
         hasUsedStruggle = false;
         battleRound = 0;
         SetPhase(EncounterPhase.Exploration);
@@ -944,6 +1008,7 @@ public class EncounterController : MonoBehaviour
     private void ResolveEnemyEscaped(EnemyActor escapedEnemy)
     {
         isTrackingNumberLoss = false;
+        playerSkills?.ClearCooldowns();
         UIManager.Instance?.Close<BattleActionPanel>();
         playerController.SetExternalInputLocked(false);
         battleStatusWorldUI?.SetCombatVisible(false);
@@ -958,6 +1023,7 @@ public class EncounterController : MonoBehaviour
         successfulGreedAttempts = 0;
         currentGreedyWinnings = 0;
         hasBrokenMirror = false;
+        greedChosenThisBattle = false;
         hasUsedStruggle = false;
         battleRound = 0;
         SetPhase(EncounterPhase.Exploration);
@@ -1000,6 +1066,41 @@ public class EncounterController : MonoBehaviour
             )
             : 0f;
         return Mathf.Clamp(greedySuccessChance + bonus, 0f, 0.9f);
+    }
+
+    private float GetInitialGreedySuccessChance()
+    {
+        if (consecutiveGreedSuccesses >= 2)
+        {
+            return 0f;
+        }
+
+        if (!HasAnyRelic() && consecutiveGreedFailures >= 2)
+        {
+            return 1f;
+        }
+
+        return GetEffectiveGreedySuccessChance();
+    }
+
+    private bool HasAnyRelic()
+    {
+        if (playerInventory == null)
+        {
+            return false;
+        }
+
+        foreach (CollectibleStack stack in playerInventory.Stacks)
+        {
+            if (stack?.Definition != null &&
+                stack.Count > 0 &&
+                stack.Definition.Kind == CollectibleKind.Relic)
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private float GetEffectiveGreedyMultiplier()

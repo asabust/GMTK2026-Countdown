@@ -4,12 +4,16 @@ using UnityEngine.UI;
 
 public static class UILocalization
 {
-    public static void SetButtonText(Button button, string key)
+    public static void SetButtonText(
+        Button button,
+        string key,
+        params object[] arguments
+    )
     {
         TMP_Text label = button?.GetComponentInChildren<TMP_Text>(true);
         if (label != null)
         {
-            label.text = GameLocalization.Get(key);
+            label.text = GameLocalization.Get(key, arguments);
         }
     }
 }

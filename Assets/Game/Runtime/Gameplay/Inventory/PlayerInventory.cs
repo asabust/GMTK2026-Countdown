@@ -7,20 +7,105 @@ public sealed class CollectibleStack
 {
     [SerializeField] private CollectibleDefinition definition;
     [SerializeField, Min(1)] private int count;
+    [SerializeField] private List<int> relicGreedBattlesRemaining = new();
 
     public CollectibleStack(CollectibleDefinition definition)
     {
         this.definition = definition;
         count = 1;
+        if (definition?.Kind == CollectibleKind.Relic &&
+            definition.RelicGreedBattleDurability > 0)
+        {
+            relicGreedBattlesRemaining.Add(
+                definition.RelicGreedBattleDurability
+            );
+        }
     }
 
     public CollectibleDefinition Definition => definition;
     public int Count => count;
-    internal void AddOne() => count++;
+    public int GetRemainingGreedBattles(int copyIndex) =>
+        copyIndex >= 0 &&
+        copyIndex < relicGreedBattlesRemaining.Count
+            ? relicGreedBattlesRemaining[copyIndex]
+            : 0;
+    internal void AddOne()
+    {
+        count++;
+        if (definition?.Kind == CollectibleKind.Relic &&
+            definition.RelicGreedBattleDurability > 0)
+        {
+            relicGreedBattlesRemaining.Add(
+                definition.RelicGreedBattleDurability
+            );
+        }
+    }
     internal bool RemoveOne()
     {
         count = Mathf.Max(0, count - 1);
         return count == 0;
+    }
+
+    internal int ConsumeGreedBattleDurability()
+    {
+        if (definition == null ||
+            definition.Kind != CollectibleKind.Relic ||
+            definition.RelicGreedBattleDurability <= 0)
+        {
+            return 0;
+        }
+
+        EnsureRelicDurability();
+        int shatteredCount = 0;
+        for (int i = relicGreedBattlesRemaining.Count - 1; i >= 0; i--)
+        {
+            relicGreedBattlesRemaining[i] = Mathf.Max(
+                0,
+                relicGreedBattlesRemaining[i] - 1
+            );
+            if (relicGreedBattlesRemaining[i] > 0)
+            {
+                continue;
+            }
+
+            relicGreedBattlesRemaining.RemoveAt(i);
+            count = Mathf.Max(0, count - 1);
+            shatteredCount++;
+        }
+
+        return shatteredCount;
+    }
+
+    internal void EnsureRelicDurability()
+    {
+        if (definition != null &&
+            definition.Kind == CollectibleKind.Relic &&
+            definition.RelicGreedBattleDurability > 0)
+        {
+            relicGreedBattlesRemaining ??= new List<int>();
+            while (relicGreedBattlesRemaining.Count < count)
+            {
+                relicGreedBattlesRemaining.Add(
+                    definition.RelicGreedBattleDurability
+                );
+            }
+            if (relicGreedBattlesRemaining.Count > count)
+            {
+                relicGreedBattlesRemaining.RemoveRange(
+                    count,
+                    relicGreedBattlesRemaining.Count - count
+                );
+            }
+
+            for (int i = 0; i < relicGreedBattlesRemaining.Count; i++)
+            {
+                if (relicGreedBattlesRemaining[i] <= 0)
+                {
+                    relicGreedBattlesRemaining[i] =
+                        definition.RelicGreedBattleDurability;
+                }
+            }
+        }
     }
 }
 
@@ -213,6 +298,42 @@ public sealed class PlayerInventory : MonoBehaviour
         return value;
     }
 
+    public List<CollectibleDefinition> ConsumeGreedBattleDurability()
+    {
+        List<CollectibleDefinition> shattered = new();
+        bool changed = false;
+        for (int i = stacks.Count - 1; i >= 0; i--)
+        {
+            CollectibleStack stack = stacks[i];
+            if (stack?.Definition == null ||
+                stack.Definition.Kind != CollectibleKind.Relic ||
+                stack.Definition.RelicGreedBattleDurability <= 0)
+            {
+                continue;
+            }
+
+            changed = true;
+            int shatteredCount =
+                stack.ConsumeGreedBattleDurability();
+            for (int copy = 0; copy < shatteredCount; copy++)
+            {
+                shattered.Add(stack.Definition);
+            }
+
+            if (stack.Count <= 0)
+            {
+                stacks.RemoveAt(i);
+            }
+        }
+
+        if (changed)
+        {
+            Changed?.Invoke();
+        }
+
+        return shattered;
+    }
+
     public void ResetForNewRun()
     {
         stacks.Clear();
@@ -231,6 +352,7 @@ public sealed class PlayerInventory : MonoBehaviour
         UsedItemSlots = 0;
         foreach (CollectibleStack stack in stacks)
         {
+            stack.EnsureRelicDurability();
             if (stack.Definition.Kind == CollectibleKind.Item)
             {
                 UsedItemSlots++;

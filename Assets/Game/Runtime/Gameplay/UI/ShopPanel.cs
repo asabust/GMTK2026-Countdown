@@ -119,7 +119,11 @@ public sealed class ShopPanel : UIPanel
         exchangeResolved = false;
         selectedIndex = -1;
         if (feedbackText != null) feedbackText.text = string.Empty;
-        if (leaveButton != null) leaveButton.gameObject.SetActive(true);
+        if (leaveButton != null)
+        {
+            leaveButton.gameObject.SetActive(true);
+            leaveButton.interactable = true;
+        }
         UILocalization.SetButtonText(
             leaveButton,
             exchangeRequest != null

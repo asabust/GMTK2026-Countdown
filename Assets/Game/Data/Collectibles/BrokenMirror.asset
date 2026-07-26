@@ -22,3 +22,4 @@ MonoBehaviour:
   effectType: 7
   effectValue: 1
   effectDuration: 0
+  relicGreedBattleDurability: 3

@@ -29,6 +29,7 @@ public sealed class CollectibleDefinition : ScriptableObject
     [SerializeField] private CollectibleEffectType effectType;
     [SerializeField] private float effectValue;
     [SerializeField, Min(0)] private int effectDuration;
+    [SerializeField, Min(0)] private int relicGreedBattleDurability;
 
     public string CollectibleId => collectibleId;
     public string DisplayName => GameLocalization.GetOrDefault(
@@ -56,11 +57,19 @@ public sealed class CollectibleDefinition : ScriptableObject
     public CollectibleEffectType EffectType => effectType;
     public float EffectValue => effectValue;
     public int EffectDuration => effectDuration;
+    public int RelicGreedBattleDurability =>
+        kind == CollectibleKind.Relic
+            ? relicGreedBattleDurability
+            : 0;
 
     private void OnValidate()
     {
         maximumStacks = Mathf.Max(1, maximumStacks);
         inventoryOrder = Mathf.Max(0, inventoryOrder);
         effectDuration = Mathf.Max(0, effectDuration);
+        relicGreedBattleDurability = Mathf.Max(
+            0,
+            relicGreedBattleDurability
+        );
     }
 }

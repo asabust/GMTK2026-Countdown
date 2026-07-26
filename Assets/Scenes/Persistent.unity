@@ -919,6 +919,8 @@ MonoBehaviour:
   idleAnimationState: Player_idle
   walkAnimationState: player_walk
   attackAnimationState: player_attack
+  injuredAnimationState: player_injured_anim_meta
+  injuredAnimationClip: player_injured.anim.meta
 --- !u!4 &1104470233
 Transform:
   m_ObjectHideFlags: 0

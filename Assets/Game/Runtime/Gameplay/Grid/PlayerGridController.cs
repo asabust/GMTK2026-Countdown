@@ -15,6 +15,10 @@ public class PlayerGridController : GridEntity
     [SerializeField] private string idleAnimationState = "Player_idle";
     [SerializeField] private string walkAnimationState = "player_walk";
     [SerializeField] private string attackAnimationState = "player_attack";
+    [SerializeField] private string injuredAnimationState =
+        "player_injured_anim_meta";
+    [SerializeField] private string injuredAnimationClip =
+        "player_injured.anim.meta";
 
     private InputAction moveAction;
     private GridMap gridMap;
@@ -108,15 +112,33 @@ public class PlayerGridController : GridEntity
         inputArmed = moveAction == null || moveAction.ReadValue<Vector2>().sqrMagnitude < 0.01f;
     }
 
-    public IEnumerator PlayAttackAnimation()
+    public IEnumerator PlayAttackAnimation() =>
+        PlayOneShotAnimation(
+            attackAnimationState,
+            attackAnimationState
+        );
+
+    public IEnumerator PlayInjuredAnimation() =>
+        PlayOneShotAnimation(
+            injuredAnimationState,
+            injuredAnimationClip
+        );
+
+    public float GetInjuredAnimationDuration() =>
+        GetAnimationDuration(injuredAnimationClip);
+
+    private IEnumerator PlayOneShotAnimation(
+        string stateName,
+        string clipName
+    )
     {
         bool wasAnimating = isAnimating;
         isAnimating = true;
-        PlayAnimation(attackAnimationState);
+        PlayAnimation(stateName);
 
         try
         {
-            float duration = GetAnimationDuration(attackAnimationState);
+            float duration = GetAnimationDuration(clipName);
             if (duration > 0f)
             {
                 yield return new WaitForSeconds(duration);
@@ -251,7 +273,7 @@ public class PlayerGridController : GridEntity
         GridEntity target = targetCell.Occupant;
         if (target != null && target != this)
         {
-            TryStartContact(target);
+            TryStartContact(target, direction);
             return;
         }
 
@@ -283,7 +305,10 @@ public class PlayerGridController : GridEntity
         moveRoutine = StartCoroutine(AnimateMove(origin, destination));
     }
 
-    private void TryStartContact(GridEntity target)
+    private void TryStartContact(
+        GridEntity target,
+        Vector2Int contactDirection
+    )
     {
         if (target.OccupantType != GridOccupantType.Enemy &&
             target.OccupantType != GridOccupantType.Interactable)
@@ -302,6 +327,7 @@ public class PlayerGridController : GridEntity
         }
 
         contactLocked = true;
+        UpdateContactFacing(contactDirection);
         handler.Invoke(target, target.OccupantType);
     }
 
@@ -402,6 +428,26 @@ public class PlayerGridController : GridEntity
 
         // The source sprites face left, so only rightward movement is flipped.
         characterSpriteRenderer.flipX = direction.x > 0;
+    }
+
+    private void UpdateContactFacing(Vector2Int direction)
+    {
+        if (characterSpriteRenderer == null)
+        {
+            return;
+        }
+
+        if (direction.x != 0)
+        {
+            UpdateFacing(direction);
+            return;
+        }
+
+        if (direction.y != 0)
+        {
+            characterSpriteRenderer.flipX =
+                !characterSpriteRenderer.flipX;
+        }
     }
 
     private void SetVisualsVisible(bool visible)
