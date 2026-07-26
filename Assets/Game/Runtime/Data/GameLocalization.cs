@@ -103,11 +103,11 @@ namespace Game.Runtime.Data
         {
             int saved = PlayerPrefs.GetInt(
                 LanguagePreferenceKey,
-                (int)Language.Chinese
+                (int)Language.English
             );
             return Enum.IsDefined(typeof(Language), saved)
                 ? (Language)saved
-                : Language.Chinese;
+                : Language.English;
         }
 
         private static LocalizationData CreateFallbackTable()

@@ -85,7 +85,6 @@ public sealed class ShopPanel : UIPanel
     [SerializeField] private TMP_Text numberText;
     [SerializeField] private ShopProductView[] productViews;
     [SerializeField] private TMP_Text dialogueText;
-    [SerializeField] private TMP_Text feedbackText;
     [SerializeField] private Button buyButton;
     [SerializeField] private TMP_Text buyButtonText;
     [SerializeField] private Button leaveButton;
@@ -118,7 +117,6 @@ public sealed class ShopPanel : UIPanel
         submitted = false;
         exchangeResolved = false;
         selectedIndex = -1;
-        if (feedbackText != null) feedbackText.text = string.Empty;
         if (leaveButton != null)
         {
             leaveButton.gameObject.SetActive(true);
@@ -174,14 +172,12 @@ public sealed class ShopPanel : UIPanel
             if (exchangeResolved || index < 0 || index >= exchangeItems.Count)
                 return;
             selectedIndex = index;
-            if (feedbackText != null) feedbackText.text = string.Empty;
             RefreshExchangeSelection();
             return;
         }
         if (request?.Offers == null ||
             index < 0 || index >= request.Offers.Length) return;
         selectedIndex = index;
-        if (feedbackText != null) feedbackText.text = string.Empty;
         RefreshSelection();
     }
 
@@ -197,23 +193,21 @@ public sealed class ShopPanel : UIPanel
         ShopPurchaseResult result =
             request.Purchase?.Invoke(selectedIndex) ??
             ShopPurchaseResult.InvalidOffer;
-        if (feedbackText != null)
+        string feedback = result switch
         {
-            feedbackText.text = result switch
-            {
-                ShopPurchaseResult.Success =>
-                    GameLocalization.Get("shop.feedback.purchase_success"),
-                ShopPurchaseResult.NumberInsufficient =>
-                    GameLocalization.Get("shop.feedback.insufficient"),
-                ShopPurchaseResult.ItemSlotsFull =>
-                    GameLocalization.Get("shop.purchase.inventory_full"),
-                ShopPurchaseResult.MaximumStacksReached =>
-                    GetMaximumStacksMessage(),
-                ShopPurchaseResult.SoldOut =>
-                    GameLocalization.Get("shop.feedback.sold_out"),
-                _ => GameLocalization.Get("shop.purchase.unavailable")
-            };
-        }
+            ShopPurchaseResult.Success =>
+                GameLocalization.Get("shop.feedback.purchase_success"),
+            ShopPurchaseResult.NumberInsufficient =>
+                GameLocalization.Get("shop.feedback.insufficient"),
+            ShopPurchaseResult.ItemSlotsFull =>
+                GameLocalization.Get("shop.purchase.inventory_full"),
+            ShopPurchaseResult.MaximumStacksReached =>
+                GetMaximumStacksMessage(),
+            ShopPurchaseResult.SoldOut =>
+                GameLocalization.Get("shop.feedback.sold_out"),
+            _ => GameLocalization.Get("shop.purchase.unavailable")
+        };
+        ToastPanel.Show(feedback);
         RefreshOffers();
         RefreshSelection();
     }
@@ -308,7 +302,16 @@ public sealed class ShopPanel : UIPanel
     private void RefreshNumber()
     {
         if (numberText != null)
-            numberText.text = request?.Number?.CurrentValue.ToString() ?? "—";
+        {
+            int currentNumber =
+                request?.Number?.CurrentValue ??
+                NumberResource.Instance?.CurrentValue ??
+                0;
+            numberText.text = GameLocalization.Get(
+                "common.current_number",
+                currentNumber
+            );
+        }
     }
 
     private void OpenExchange()
@@ -327,7 +330,7 @@ public sealed class ShopPanel : UIPanel
         }
         if (numberText != null)
         {
-            numberText.text = GameLocalization.Get("exchange.title");
+            RefreshNumber();
         }
         if (leaveButton != null)
         {
@@ -424,33 +427,24 @@ public sealed class ShopPanel : UIPanel
         );
         if (!result.Succeeded)
         {
-            if (feedbackText != null)
-            {
-                feedbackText.text =
-                    result.Status == ExchangeResultStatus.NoAlternativeAvailable
-                        ? GameLocalization.Get("exchange.no_alternative")
-                        : GameLocalization.Get("exchange.failed");
-            }
+            ToastPanel.Show(
+                result.Status == ExchangeResultStatus.NoAlternativeAvailable
+                    ? GameLocalization.Get("exchange.no_alternative")
+                    : GameLocalization.Get("exchange.failed")
+            );
             return;
         }
 
         exchangeResolved = true;
-        if (feedbackText != null)
-        {
-            feedbackText.text = GameLocalization.Get(
+        submitted = true;
+        SetButtons(false);
+        ToastPanel.Show(
+            GameLocalization.Get(
                 "exchange.result.success",
                 result.Received.DisplayName
-            );
-        }
-        if (dialogueText != null)
-        {
-            dialogueText.text = result.Received.Description;
-        }
-        RefreshExchangeItems();
-        if (buyButton != null) buyButton.interactable = true;
-        if (buyButtonText != null)
-            buyButtonText.text = GameLocalization.Get("common.done");
-        if (leaveButton != null) leaveButton.gameObject.SetActive(false);
+            )
+        );
+        exchangeRequest.Complete?.Invoke();
     }
 
     private void SetButtons(bool value)

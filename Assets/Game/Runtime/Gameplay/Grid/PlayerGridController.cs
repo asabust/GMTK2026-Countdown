@@ -368,9 +368,7 @@ public class PlayerGridController : GridEntity
             numberResource.CurrentValue <= numberResource.MinimumValue)
         {
             externalInputLocked = true;
-            GameManager.Instance?.GameOver(
-                GameLocalization.Get("game_over.reason.movement")
-            );
+            GameManager.Instance?.GameOver();
         }
     }
 

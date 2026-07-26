@@ -70,7 +70,6 @@ public sealed class CampfirePanel : UIPanel
 {
     [SerializeField] private TMP_Text titleText;
     [SerializeField] private TMP_Text descriptionText;
-    [SerializeField] private TMP_Text feedbackText;
     [SerializeField] private Button restButton;
     [SerializeField] private TMP_Text restButtonText;
     [SerializeField] private Button leaveButton;
@@ -115,24 +114,11 @@ public sealed class CampfirePanel : UIPanel
 
         if (descriptionText != null)
         {
-            int current = request.NumberResource != null
-                ? request.NumberResource.CurrentValue
-                : 0;
-            int maximum = request.NumberResource != null
-                ? request.NumberResource.MaximumValue
-                : 0;
             descriptionText.text = GameLocalization.Get(
                 "campfire.description",
                 request.MinimumRestore,
-                request.MaximumRestore,
-                current,
-                maximum
+                request.MaximumRestore
             );
-        }
-
-        if (feedbackText != null)
-        {
-            feedbackText.text = string.Empty;
         }
 
         if (restButtonText != null)
@@ -168,12 +154,9 @@ public sealed class CampfirePanel : UIPanel
             bool received = treasureRequest.IsCollectibleReward
                 ? treasureRequest.ClaimCollectible?.Invoke() == true
                 : treasureRequest.Learn?.Invoke() == true;
-            if (feedbackText != null)
-            {
-                feedbackText.text = received
-                    ? GameLocalization.Get("treasure.received", rewardName)
-                    : GameLocalization.Get("treasure.receive_failed");
-            }
+            ToastPanel.Show(received
+                ? GameLocalization.Get("treasure.received", rewardName)
+                : GameLocalization.Get("treasure.receive_failed"));
             return;
         }
         if (request == null) return;
@@ -185,12 +168,9 @@ public sealed class CampfirePanel : UIPanel
         if (isAtMaximum && !awaitingFullNumberConfirmation)
         {
             awaitingFullNumberConfirmation = true;
-            if (feedbackText != null)
-            {
-                feedbackText.text = GameLocalization.Get(
-                    "campfire.full_confirmation"
-                );
-            }
+            ToastPanel.Show(GameLocalization.Get(
+                "campfire.full_confirmation"
+            ));
 
             if (restButtonText != null)
             {
@@ -253,11 +233,11 @@ public sealed class CampfirePanel : UIPanel
                     skill.Description
                 );
         }
-        if (feedbackText != null)
+        if (owned)
         {
-            feedbackText.text = owned
-                ? GameLocalization.Get("treasure.skill_owned")
-                : string.Empty;
+            ToastPanel.Show(GameLocalization.Get(
+                "treasure.skill_owned"
+            ));
         }
         if (restButtonText != null)
         {
@@ -309,11 +289,10 @@ public sealed class CampfirePanel : UIPanel
                     collectible.Description
                 );
         }
-        if (feedbackText != null)
+        if (!canClaim)
         {
-            feedbackText.text = canClaim
-                ? string.Empty
-                : addResult == InventoryAddResult.MaximumStacksReached
+            ToastPanel.Show(
+                addResult == InventoryAddResult.MaximumStacksReached
                     ? GameLocalization.Get(
                         "treasure.maximum_reached",
                         kind
@@ -321,7 +300,8 @@ public sealed class CampfirePanel : UIPanel
                     : GameLocalization.Get(
                         "treasure.cannot_claim_kind",
                         kind
-                    );
+                    )
+            );
         }
         if (restButtonText != null)
         {

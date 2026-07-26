@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: DefaultOffering
   m_EditorClassIdentifier: 
   offeringId: default_offering
-  maximumAmount: 100
+  maximumAmount: 15
   attackIncrease: 1
   outcomes:
   - outcome: 0
