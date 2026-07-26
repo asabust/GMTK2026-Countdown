@@ -64,7 +64,7 @@ public sealed class CampfireInteractable : WorldInteractable
         }
 
         submitted = true;
-        context.Complete();
+        context.Complete(consume: false);
     }
 
     private void OnValidate()

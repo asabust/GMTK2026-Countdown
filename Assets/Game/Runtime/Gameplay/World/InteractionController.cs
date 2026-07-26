@@ -75,7 +75,7 @@ public sealed class InteractionController : MonoBehaviour
             playerController,
             numberResource,
             interactable.transform.position,
-            () => CompleteInteraction(interactable)
+            consume => CompleteInteraction(interactable, consume)
         );
 
         if (interactable.TryBeginInteraction(context))
@@ -88,7 +88,10 @@ public sealed class InteractionController : MonoBehaviour
         playerController.CompleteContact();
     }
 
-    private void CompleteInteraction(WorldInteractable interactable)
+    private void CompleteInteraction(
+        WorldInteractable interactable,
+        bool consume
+    )
     {
         if (currentInteractable == null ||
             currentInteractable != interactable)
@@ -97,7 +100,7 @@ public sealed class InteractionController : MonoBehaviour
         }
 
         currentInteractable = null;
-        interactable.FinishInteraction(consume: true);
+        interactable.FinishInteraction(consume);
         playerController.SetExternalInputLocked(false);
         playerController.CompleteContact();
     }

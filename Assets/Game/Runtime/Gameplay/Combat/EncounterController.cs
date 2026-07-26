@@ -623,9 +623,7 @@ public class EncounterController : MonoBehaviour
         battleStatusWorldUI?.SetCombatVisible(false);
         CurrentEnemy?.WorldUI?.HideIntent();
         playerController.SetExternalInputLocked(true);
-        GameManager.Instance?.GameOver(
-            GameLocalization.Get("game_over.reason.combat")
-        );
+        GameManager.Instance?.GameOver();
     }
 
     private void ResolveDefeatedEnemy()
@@ -817,6 +815,7 @@ public class EncounterController : MonoBehaviour
                 resolvedRound,
                 defeatedEnemy.Definition.RewardMode,
                 battleLoot,
+                defeatedEnemy.Definition.DisplayName,
                 itemDropSummary,
                 GetInitialGreedySuccessChance(),
                 GetEffectiveGreedyMultiplier(),

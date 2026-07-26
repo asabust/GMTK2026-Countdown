@@ -72,12 +72,12 @@ public class GameManager : Singleton<GameManager>
         TransitionManager.Instance.Transition(string.Empty, titleScene);
     }
 
-    public void GameOver(string reason)
+    public void GameOver()
     {
         SetGamePhase(GamePhase.GameOver);
         UIManager.Instance?.Open<GameOverPanel>(
             new GameOverRequest(
-                reason,
+                GameLocalization.Get("game_over.reason.default"),
                 NumberResource.Instance != null
                     ? NumberResource.Instance.CurrentValue
                     : -1,

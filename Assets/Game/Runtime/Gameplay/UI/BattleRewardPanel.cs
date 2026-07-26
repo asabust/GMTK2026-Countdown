@@ -42,6 +42,7 @@ public sealed class BattleRewardRequest
         int battleRound,
         EnemyRewardMode rewardMode,
         int battleLoot,
+        string enemyName,
         string itemDropSummary,
         float greedySuccessChance,
         float greedyMultiplier,
@@ -53,6 +54,7 @@ public sealed class BattleRewardRequest
         BattleRound = battleRound;
         RewardMode = rewardMode;
         BattleLoot = battleLoot;
+        EnemyName = enemyName;
         ItemDropSummary = itemDropSummary;
         GreedySuccessChance = greedySuccessChance;
         GreedyMultiplier = greedyMultiplier;
@@ -64,6 +66,7 @@ public sealed class BattleRewardRequest
     public int BattleRound { get; }
     public EnemyRewardMode RewardMode { get; }
     public int BattleLoot { get; }
+    public string EnemyName { get; }
     public string ItemDropSummary { get; }
     public float GreedySuccessChance { get; }
     public float GreedyMultiplier { get; }
@@ -73,7 +76,6 @@ public sealed class BattleRewardRequest
 
 public class BattleRewardPanel : UIPanel
 {
-    [SerializeField] private TMP_Text summaryText;
     [SerializeField] private TMP_Text safeText;
     [SerializeField] private TMP_Text greedyText;
     [SerializeField] private TMP_Text resultText;
@@ -120,34 +122,6 @@ public class BattleRewardPanel : UIPanel
             request.GreedySuccessChance * 100f
         );
 
-        string numberSummary = request.RewardMode switch
-        {
-            EnemyRewardMode.TurnScaled =>
-                GameLocalization.Get(
-                    "battle.reward.summary.turn",
-                    request.ResolvedMaxHP,
-                    request.BattleRound,
-                    Mathf.RoundToInt(
-                        EnemyDefinition.GetTurnRewardMultiplier(
-                            request.BattleRound
-                        ) * 100f
-                    ),
-                    request.BattleLoot
-                ),
-            EnemyRewardMode.HealthScaled =>
-                GameLocalization.Get(
-                    "battle.reward.summary.health",
-                    request.ResolvedMaxHP,
-                    request.BattleLoot
-                ),
-            _ => GameLocalization.Get(
-                "battle.reward.summary.fixed",
-                request.BattleLoot
-            )
-        };
-        summaryText.text = string.IsNullOrWhiteSpace(request.ItemDropSummary)
-            ? numberSummary
-            : $"{numberSummary}\n{request.ItemDropSummary}";
         safeText.text = GameLocalization.Get(
             "battle.reward.safe",
             request.BattleLoot
@@ -158,12 +132,10 @@ public class BattleRewardPanel : UIPanel
             greedyGain,
             100 - successPercent
         );
-        string itemSafety = GameLocalization.Get(
-            "battle.reward.item_safety"
+        resultText.text = GameLocalization.Get(
+            "battle.reward.prompt",
+            request.EnemyName
         );
-        resultText.text = string.IsNullOrWhiteSpace(request.ItemDropSummary)
-            ? itemSafety
-            : $"{request.ItemDropSummary}\n{itemSafety}";
     }
 
     public override void OnClose()
@@ -221,9 +193,12 @@ public class BattleRewardPanel : UIPanel
                 nextTotal,
                 100 - nextSuccessPercent
             );
-            resultText.text = GameLocalization.Get(
+            ToastPanel.Show(GameLocalization.Get(
                 "battle.reward.additional_success",
                 result.GainedNumber
+            ));
+            resultText.text = GameLocalization.Get(
+                "battle.reward.additional_prompt"
             );
             resolved = false;
             SetButtonsInteractable(true);
@@ -232,7 +207,7 @@ public class BattleRewardPanel : UIPanel
 
         if (choice == BattleRewardChoice.Safe)
         {
-            resultText.text = isAdditionalGreed
+            ToastPanel.Show(isAdditionalGreed
                 ? GameLocalization.Get(
                     "battle.reward.stopped_result",
                     result.GainedNumber
@@ -240,23 +215,23 @@ public class BattleRewardPanel : UIPanel
                 : GameLocalization.Get(
                     "battle.reward.safe_result",
                     result.GainedNumber
-                );
+                ));
         }
         else if (result.Succeeded)
         {
-            resultText.text = GameLocalization.Get(
+            ToastPanel.Show(GameLocalization.Get(
                 "battle.reward.result.success",
                 result.GainedNumber
-            );
+            ));
         }
         else
         {
-            resultText.text = result.GainedNumber > 0
+            ToastPanel.Show(result.GainedNumber > 0
                 ? GameLocalization.Get(
                     "battle.reward.additional_failed",
                     result.GainedNumber
                 )
-                : GameLocalization.Get("battle.reward.result.failed");
+                : GameLocalization.Get("battle.reward.result.failed"));
         }
 
         finishRoutine = StartCoroutine(FinishAfterResult());

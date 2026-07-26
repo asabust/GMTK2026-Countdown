@@ -32,13 +32,7 @@ public sealed class OfferingPanel : UIPanel
 {
     [SerializeField] private Slider amountSlider;
     [SerializeField] private TMP_Text amountText;
-    [SerializeField] private TMP_Text previewText;
     [SerializeField] private TMP_Text dialogueText;
-    [SerializeField] private TMP_Text feedbackText;
-    [SerializeField] private Button decreaseTenButton;
-    [SerializeField] private Button decreaseOneButton;
-    [SerializeField] private Button increaseOneButton;
-    [SerializeField] private Button increaseTenButton;
     [SerializeField] private Button confirmButton;
     [SerializeField] private TMP_Text confirmButtonText;
     [SerializeField] private Button leaveButton;
@@ -49,10 +43,6 @@ public sealed class OfferingPanel : UIPanel
     public override void OnInit()
     {
         amountSlider?.onValueChanged.AddListener(HandleAmountChanged);
-        decreaseTenButton?.onClick.AddListener(() => AdjustAmount(-10));
-        decreaseOneButton?.onClick.AddListener(() => AdjustAmount(-1));
-        increaseOneButton?.onClick.AddListener(() => AdjustAmount(1));
-        increaseTenButton?.onClick.AddListener(() => AdjustAmount(10));
         confirmButton?.onClick.AddListener(Confirm);
         leaveButton?.onClick.AddListener(Leave);
     }
@@ -61,7 +51,6 @@ public sealed class OfferingPanel : UIPanel
     {
         request = data as OfferingRequest;
         resolved = false;
-        if (feedbackText != null) feedbackText.text = string.Empty;
         if (confirmButtonText != null)
             confirmButtonText.text = GameLocalization.Get(
                 "offering.button.confirm"
@@ -125,23 +114,8 @@ public sealed class OfferingPanel : UIPanel
 
     private void HandleAmountChanged(float _) => RefreshAmount();
 
-    private void AdjustAmount(int delta)
-    {
-        if (resolved || amountSlider == null)
-        {
-            return;
-        }
-
-        amountSlider.value = Mathf.Clamp(
-            GetAmount() + delta,
-            1,
-            Mathf.Max(1, GetMaximumAmount())
-        );
-    }
-
     private void RefreshAmount()
     {
-        int current = request?.Number?.CurrentValue ?? 0;
         int maximum = GetMaximumAmount();
         int amount = maximum > 0
             ? Mathf.Clamp(GetAmount(), 1, maximum)
@@ -149,18 +123,7 @@ public sealed class OfferingPanel : UIPanel
 
         if (amountText != null)
         {
-            amountText.text = $"{amount} / {current}";
-        }
-
-        if (previewText != null)
-        {
-            previewText.text = maximum > 0
-                ? GameLocalization.Get(
-                    "offering.preview",
-                    current,
-                    current - amount
-                )
-                : GameLocalization.Get("offering.none_available");
+            amountText.text = $"{amount} / {maximum}";
         }
     }
 
@@ -180,36 +143,26 @@ public sealed class OfferingPanel : UIPanel
         OfferingResolution result = request.Resolve?.Invoke(GetAmount());
         if (result == null || result.Status != OfferingResolutionStatus.Success)
         {
-            if (feedbackText != null)
-            {
-                feedbackText.text = result?.Status switch
+            ToastPanel.Show(
+                result?.Status switch
                 {
                     OfferingResolutionStatus.NumberInsufficient =>
                         GameLocalization.Get("offering.error.insufficient"),
                     OfferingResolutionStatus.InvalidConfiguration =>
                         GameLocalization.Get("offering.error.configuration"),
                     _ => GameLocalization.Get("offering.error.amount")
-                };
-            }
-            RefreshAmount();
+                }
+            );
+            resolved = true;
+            SetInputInteractable(false);
+            request.ContinueAfterResult?.Invoke();
             return;
         }
 
         resolved = true;
         SetInputInteractable(false);
-        if (leaveButton != null) leaveButton.gameObject.SetActive(false);
-        if (confirmButton != null) confirmButton.interactable = true;
-        if (confirmButtonText != null)
-            confirmButtonText.text = GameLocalization.Get("common.continue");
-        if (dialogueText != null)
-            dialogueText.text = GameLocalization.Get("offering.result_title");
-        if (feedbackText != null) feedbackText.text = FormatResult(result);
-        if (amountText != null)
-            amountText.text = GameLocalization.Get(
-                "common.current_number",
-                result.FinalNumber
-            );
-        if (previewText != null) previewText.text = string.Empty;
+        ToastPanel.Show(FormatResult(result));
+        request.ContinueAfterResult?.Invoke();
     }
 
     private static string FormatResult(OfferingResolution result)
@@ -276,10 +229,6 @@ public sealed class OfferingPanel : UIPanel
     private void SetInputInteractable(bool value)
     {
         if (amountSlider != null) amountSlider.interactable = value;
-        if (decreaseTenButton != null) decreaseTenButton.interactable = value;
-        if (decreaseOneButton != null) decreaseOneButton.interactable = value;
-        if (increaseOneButton != null) increaseOneButton.interactable = value;
-        if (increaseTenButton != null) increaseTenButton.interactable = value;
         if (confirmButton != null) confirmButton.interactable = value;
         if (leaveButton != null) leaveButton.interactable = true;
     }
