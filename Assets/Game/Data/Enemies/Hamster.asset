@@ -11,11 +11,11 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 72ff22544e534d97b3598dc54fd2029d, type: 3}
   m_Name: Hamster
-  m_EditorClassIdentifier:
+  m_EditorClassIdentifier: 
   enemyId: Hamster
   displayName: "\u9F13\u9F13\u4ED3\u9F20"
-  minHP: 6
-  maxHP: 12
+  minHP: 7
+  maxHP: 13
   canRollHP: 1
   fixedHP: 10
   rewardNumber: 0
@@ -23,13 +23,17 @@ MonoBehaviour:
   attackDamage: 2
   specialDamage: 0
   behaviorType: 3
-  intentSequence:
-  - 3
-  - 3
-  - 2
+  intentSequence: 030000000300000002000000
   raiderNextAttackBonus: 1
   raiderSelfDamage: 2
   raiderStrengthenWeight: 1
   raiderSelfDamageWeight: 1
   raiderStunnedWeight: 1
   hamsterStealAmount: 3
+  healthRewardMultiplier: 0.5
+  horrorExplosionMultiplier: 0.8
+  itemDropTable: []
+  itemDropCount: 1
+  bossPhase: 0
+  bossNextPhase: {fileID: 0}
+  bossNoItemDamage: 5

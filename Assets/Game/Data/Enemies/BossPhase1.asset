@@ -11,11 +11,11 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 72ff22544e534d97b3598dc54fd2029d, type: 3}
   m_Name: BossPhase1
-  m_EditorClassIdentifier:
+  m_EditorClassIdentifier: 
   enemyId: BossPhase1
-  displayName: "\u8870\u53F9\u4E4B\u949F\u00B7\u4E00\u9636\u6BB5"
-  minHP: 50
-  maxHP: 50
+  displayName: "\u8870\u53F9\u4E4B\u949F\xB7\u4E00\u9636\u6BB5"
+  minHP: 30
+  maxHP: 30
   canRollHP: 0
   fixedHP: 50
   rewardNumber: 0
@@ -23,11 +23,7 @@ MonoBehaviour:
   attackDamage: 5
   specialDamage: 13
   behaviorType: 4
-  intentSequence:
-  - 1
-  - 4
-  - 4
-  - 2
+  intentSequence: 01000000040000000400000002000000
   raiderNextAttackBonus: 1
   raiderSelfDamage: 2
   raiderStrengthenWeight: 1
