@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using Game.Runtime.Data;
 using TMPro;
 using UnityEngine;
@@ -181,7 +182,7 @@ public sealed class OfferingPanel : UIPanel
         return result.Outcome switch
         {
             OfferingOutcomeType.RandomItem =>
-                FormatItemResult(result.Item, result.ItemAddResult),
+                FormatItemResult(result.ItemRewards),
             OfferingOutcomeType.LoseAll =>
                 GameLocalization.Get(
                     "offering.result.lose_all",
@@ -207,23 +208,59 @@ public sealed class OfferingPanel : UIPanel
     }
 
     private static string FormatItemResult(
-        CollectibleDefinition item,
-        InventoryAddResult result
+        IReadOnlyList<OfferingItemReward> rewards
     )
     {
-        string itemName = item != null
-            ? item.DisplayName
-            : GameLocalization.Get("common.unknown_item");
-        return result switch
+        if (rewards == null || rewards.Count == 0)
         {
-            InventoryAddResult.Success =>
-                GameLocalization.Get("offering.item.success", itemName),
-            InventoryAddResult.MaximumStacksReached =>
-                GameLocalization.Get("offering.item.maximum", itemName),
-            InventoryAddResult.ItemSlotsFull =>
-                GameLocalization.Get("offering.item.inventory_full"),
-            _ => GameLocalization.Get("offering.item.invalid")
-        };
+            return GameLocalization.Get("offering.item.invalid");
+        }
+
+        List<string> receivedNames = new();
+        List<string> failureMessages = new();
+        foreach (OfferingItemReward reward in rewards)
+        {
+            string itemName = reward?.Item != null
+                ? reward.Item.DisplayName
+                : GameLocalization.Get("common.unknown_item");
+            switch (reward?.AddResult)
+            {
+                case InventoryAddResult.Success:
+                    receivedNames.Add(itemName);
+                    break;
+
+                case InventoryAddResult.MaximumStacksReached:
+                    failureMessages.Add(GameLocalization.Get(
+                        "offering.item.maximum",
+                        itemName
+                    ));
+                    break;
+
+                case InventoryAddResult.ItemSlotsFull:
+                    failureMessages.Add(GameLocalization.Get(
+                        "offering.item.inventory_full"
+                    ));
+                    break;
+
+                default:
+                    failureMessages.Add(GameLocalization.Get(
+                        "offering.item.invalid"
+                    ));
+                    break;
+            }
+        }
+
+        List<string> messages = new();
+        if (receivedNames.Count > 0)
+        {
+            messages.Add(GameLocalization.Get(
+                "offering.result.item",
+                receivedNames.Count,
+                string.Join(", ", receivedNames)
+            ));
+        }
+        messages.AddRange(failureMessages);
+        return string.Join("\n", messages);
     }
 
     private void Leave()

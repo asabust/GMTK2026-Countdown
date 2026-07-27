@@ -29,6 +29,8 @@ public class EncounterController : MonoBehaviour
     [SerializeField, Min(1)] private int basicAttackDamage = 3;
     [SerializeField, Min(1)] private int struggleDamage = 1;
     [SerializeField, Min(0f)] private float enemyActionDuration = 0.45f;
+    [SerializeField, Range(0f, 1f)]
+    private float enemyActionImpactNormalizedTime = 0.5f;
     [SerializeField, Min(0f)] private float autoPassDelay = 0.7f;
     [Header("Reward")]
     [SerializeField, Range(0f, 1f)] private float greedySuccessChance = 0.5f;
@@ -484,6 +486,18 @@ public class EncounterController : MonoBehaviour
         EnemyActor actingEnemy = CurrentEnemy;
         SetPhase(EncounterPhase.ResolvingEnemyAction);
         actingEnemy.PlayCurrentIntentAnimation();
+        float presentationDuration = Mathf.Max(
+            enemyActionDuration,
+            actingEnemy.GetCurrentIntentAnimationDuration()
+        );
+        float impactDelay =
+            presentationDuration * enemyActionImpactNormalizedTime;
+        if (impactDelay > 0f)
+        {
+            yield return new WaitForSeconds(impactDelay);
+            presentationDuration -= impactDelay;
+        }
+
         EnemyIntentResolution intentResolution =
             actingEnemy.ResolveLockedIntent();
 
@@ -537,13 +551,14 @@ public class EncounterController : MonoBehaviour
                     damageToPlayer
                 );
         bool playerTookDamage = attackResolution.FinalDamage > 0;
-        if (attackResolution.BlockedByShield > 0 ||
-            attackResolution.NegatedByHeart)
+        bool attackWasProtected =
+            attackResolution.BlockedByShield > 0 ||
+            attackResolution.NegatedByHeart;
+        if (attackWasProtected)
         {
             AudioManager.Instance?.PlaySFX(
                 AudioName.SfxPlayerDefendHit
             );
-            ShowAttackProtectionFeedback(attackResolution);
         }
         else if (playerTookDamage)
         {
@@ -574,11 +589,10 @@ public class EncounterController : MonoBehaviour
             );
         }
         actingEnemy.ShowIntentResolution(resolutionDescription);
-
-        float presentationDuration = Mathf.Max(
-            enemyActionDuration,
-            actingEnemy.GetCurrentIntentAnimationDuration()
-        );
+        if (attackWasProtected)
+        {
+            ShowAttackProtectionFeedback(attackResolution);
+        }
         if (playerTookDamage && playerController != null)
         {
             float injuredDuration =
@@ -762,6 +776,18 @@ public class EncounterController : MonoBehaviour
                 actingEnemy.ResolvedMaxHP
             );
         actingEnemy.PlaySpecialAnimation();
+        float presentationDuration = Mathf.Max(
+            enemyActionDuration,
+            actingEnemy.GetSpecialAnimationDuration()
+        );
+        float impactDelay =
+            presentationDuration * enemyActionImpactNormalizedTime;
+        if (impactDelay > 0f)
+        {
+            yield return new WaitForSeconds(impactDelay);
+            presentationDuration -= impactDelay;
+        }
+
         AudioManager.Instance?.PlaySFX(AudioName.SfxBoxExplode);
         actingEnemy.ShowIntentResolution(GameLocalization.Get(
             "enemy.action.overload_explosion",
@@ -797,11 +823,6 @@ public class EncounterController : MonoBehaviour
                 actingEnemy.transform.position
             );
         }
-
-        float presentationDuration = Mathf.Max(
-            enemyActionDuration,
-            actingEnemy.GetSpecialAnimationDuration()
-        );
         if (playerTookDamage && playerController != null)
         {
             float injuredDuration =

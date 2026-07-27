@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using Game.Runtime.Data;
 using UnityEngine;
 
@@ -18,8 +19,13 @@ public sealed class OfferingResolution
     public int ReturnedAmount { get; set; }
     public int AttackIncrease { get; set; }
     public int FinalNumber { get; set; }
+    public List<OfferingItemReward> ItemRewards { get; set; } = new();
+}
+
+public sealed class OfferingItemReward
+{
     public CollectibleDefinition Item { get; set; }
-    public InventoryAddResult ItemAddResult { get; set; }
+    public InventoryAddResult AddResult { get; set; }
 }
 
 public sealed class OfferingInteractable : WorldInteractable
@@ -112,16 +118,23 @@ public sealed class OfferingInteractable : WorldInteractable
         resolved = true;
         int returnedAmount = 0;
         int attackIncrease = 0;
-        CollectibleDefinition item = null;
-        InventoryAddResult itemAddResult = InventoryAddResult.Success;
+        List<OfferingItemReward> itemRewards = new();
 
         switch (outcome)
         {
             case OfferingOutcomeType.RandomItem:
-                item = RollItem();
-                itemAddResult = item != null
-                    ? inventory.TryAdd(item)
-                    : InventoryAddResult.InvalidDefinition;
+                int itemCount = GetRandomItemRewardCount(amount);
+                for (int i = 0; i < itemCount; i++)
+                {
+                    CollectibleDefinition item = RollItem();
+                    itemRewards.Add(new OfferingItemReward
+                    {
+                        Item = item,
+                        AddResult = item != null
+                            ? inventory.TryAdd(item)
+                            : InventoryAddResult.InvalidDefinition
+                    });
+                }
                 break;
 
             case OfferingOutcomeType.AttackIncrease:
@@ -164,10 +177,12 @@ public sealed class OfferingInteractable : WorldInteractable
             ReturnedAmount = returnedAmount,
             AttackIncrease = attackIncrease,
             FinalNumber = number.CurrentValue,
-            Item = item,
-            ItemAddResult = itemAddResult
+            ItemRewards = itemRewards
         };
     }
+
+    private static int GetRandomItemRewardCount(int offeredAmount) =>
+        Mathf.Clamp((offeredAmount - 1) / 5 + 1, 1, 3);
 
     private void Complete()
     {

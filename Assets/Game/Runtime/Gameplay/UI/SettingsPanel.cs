@@ -24,11 +24,15 @@ public class SettingsPanel : UIPanel, IPointerClickHandler
     [Header("Language")]
     [SerializeField] private TMP_Dropdown languageDropdown;
 
+    [Header("Actions")]
+    [SerializeField] private Button quitButton;
+
     [Header("Localized text")]
     [SerializeField] private TMP_Text titleText;
     [SerializeField] private TMP_Text musicLabel;
     [SerializeField] private TMP_Text sfxLabel;
     [SerializeField] private TMP_Text languageLabel;
+    [SerializeField] private TMP_Text quitButtonText;
 
     private PlayerGridController playerController;
 
@@ -43,6 +47,7 @@ public class SettingsPanel : UIPanel, IPointerClickHandler
         languageDropdown?.onValueChanged.AddListener(
             HandleLanguageChanged
         );
+        quitButton?.onClick.AddListener(QuitGame);
         GameLocalization.LanguageChanged += RefreshLocalizedContent;
     }
 
@@ -113,6 +118,7 @@ public class SettingsPanel : UIPanel, IPointerClickHandler
         languageDropdown?.onValueChanged.RemoveListener(
             HandleLanguageChanged
         );
+        quitButton?.onClick.RemoveListener(QuitGame);
         GameLocalization.LanguageChanged -= RefreshLocalizedContent;
     }
 
@@ -153,12 +159,24 @@ public class SettingsPanel : UIPanel, IPointerClickHandler
         UIManager.Instance?.Close<SettingsPanel>();
     }
 
+    private static void QuitGame()
+    {
+        if (GameManager.Instance != null)
+        {
+            GameManager.Instance.QuitGame();
+            return;
+        }
+
+        Application.Quit();
+    }
+
     private void RefreshLocalizedContent()
     {
         SetText(titleText, "title.settings", "Settings");
         SetText(musicLabel, "settings.volume", "Music");
         SetText(sfxLabel, "settings.sfx", "SFX");
         SetText(languageLabel, "settings.language", "Language");
+        SetText(quitButtonText, "title.quit", "Quit Game");
 
         if (languageDropdown != null)
         {

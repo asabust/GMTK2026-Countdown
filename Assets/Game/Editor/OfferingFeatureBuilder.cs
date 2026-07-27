@@ -80,7 +80,8 @@ public static class OfferingFeatureBuilder
 
         SerializedObject serialized = new(definition);
         serialized.FindProperty("offeringId").stringValue = "default_offering";
-        serialized.FindProperty("maximumAmount").intValue = 100;
+        serialized.FindProperty("maximumAmount").intValue =
+            OfferingDefinition.MaximumAllowedAmount;
         serialized.FindProperty("attackIncrease").intValue = 1;
 
         OfferingOutcomeType[] outcomeTypes =
