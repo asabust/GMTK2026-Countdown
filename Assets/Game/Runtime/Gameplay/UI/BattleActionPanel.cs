@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using Game.Runtime.Data;
 using TMPro;
 using UnityEngine;
+using UnityEngine.InputSystem;
 using UnityEngine.UI;
 
 public enum BattleItemUseStatus
@@ -266,6 +267,105 @@ public class BattleActionPanel : UIPanel
         displayedSkills.Clear();
         selectedItemIndex = -1;
         HideSkillDescription();
+    }
+
+    private void Update()
+    {
+        if (request == null ||
+            Keyboard.current == null ||
+            UIManager.Instance?.IsPanelOpen<SettingsPanel>() == true)
+        {
+            return;
+        }
+
+        if (itemMenu != null && itemMenu.activeSelf)
+        {
+            HandleItemMenuKeyboardInput();
+            return;
+        }
+
+        if (primaryMenu != null && primaryMenu.activeSelf)
+        {
+            HandlePrimaryMenuKeyboardInput();
+        }
+    }
+
+    private void HandlePrimaryMenuKeyboardInput()
+    {
+        Keyboard keyboard = Keyboard.current;
+        if (keyboard.fKey.wasPressedThisFrame)
+        {
+            InvokeButton(attackButton);
+        }
+        else if (keyboard.qKey.wasPressedThisFrame)
+        {
+            InvokeButton(skillButtons[0]);
+        }
+        else if (keyboard.eKey.wasPressedThisFrame)
+        {
+            InvokeButton(skillButtons[1]);
+        }
+        else if (keyboard.rKey.wasPressedThisFrame)
+        {
+            InvokeButton(skillButtons[2]);
+        }
+        else if (keyboard.zKey.wasPressedThisFrame)
+        {
+            InvokeButton(itemButton);
+        }
+    }
+
+    private void HandleItemMenuKeyboardInput()
+    {
+        Keyboard keyboard = Keyboard.current;
+        if (keyboard.escapeKey.wasPressedThisFrame)
+        {
+            InvokeButton(backButton);
+            return;
+        }
+
+        if (WasNumberPressed(keyboard, 0))
+        {
+            InvokeButton(itemSlotButtons[0]);
+        }
+        else if (WasNumberPressed(keyboard, 1))
+        {
+            InvokeButton(itemSlotButtons[1]);
+        }
+        else if (WasNumberPressed(keyboard, 2))
+        {
+            InvokeButton(itemSlotButtons[2]);
+        }
+        else if (WasNumberPressed(keyboard, 3))
+        {
+            InvokeButton(itemSlotButtons[3]);
+        }
+    }
+
+    private static bool WasNumberPressed(Keyboard keyboard, int index)
+    {
+        return index switch
+        {
+            0 => keyboard.digit1Key.wasPressedThisFrame ||
+                keyboard.numpad1Key.wasPressedThisFrame,
+            1 => keyboard.digit2Key.wasPressedThisFrame ||
+                keyboard.numpad2Key.wasPressedThisFrame,
+            2 => keyboard.digit3Key.wasPressedThisFrame ||
+                keyboard.numpad3Key.wasPressedThisFrame,
+            3 => keyboard.digit4Key.wasPressedThisFrame ||
+                keyboard.numpad4Key.wasPressedThisFrame,
+            _ => false
+        };
+    }
+
+    private static void InvokeButton(Button button)
+    {
+        if (button != null &&
+            button.gameObject.activeInHierarchy &&
+            button.IsInteractable())
+        {
+            button.onClick.Invoke();
+        }
     }
 
     private void HandlePrimaryAction()
