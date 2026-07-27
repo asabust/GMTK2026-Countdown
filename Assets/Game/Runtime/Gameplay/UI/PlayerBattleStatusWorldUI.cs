@@ -9,6 +9,10 @@ public sealed class PlayerBattleStatusWorldUI : MonoBehaviour
     [SerializeField] private Image shieldIcon;
     [SerializeField] private Image heartIcon;
     [SerializeField] private HoverTooltipPresenter tooltip;
+    [SerializeField] private Vector3 abovePlayerOffset =
+        new(0f, 0.68f, 0f);
+    [SerializeField] private Vector3 belowPlayerOffset =
+        new(0f, -0.68f, 0f);
 
     private PlayerRunStats runStats;
     private bool combatVisible;
@@ -34,8 +38,16 @@ public sealed class PlayerBattleStatusWorldUI : MonoBehaviour
         if (!visible)
         {
             tooltip?.Hide();
+            SetDisplayBelowPlayer(false);
         }
         Refresh();
+    }
+
+    public void SetDisplayBelowPlayer(bool displayBelow)
+    {
+        transform.localPosition = displayBelow
+            ? belowPlayerOffset
+            : abovePlayerOffset;
     }
 
     private void Refresh()

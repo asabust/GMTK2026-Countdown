@@ -179,6 +179,9 @@ public class EncounterController : MonoBehaviour
         CurrentEnemy = enemy;
         hasUsedStruggle = false;
         battleRound = 0;
+        battleStatusWorldUI?.SetDisplayBelowPlayer(
+            OccupiesCell(target, playerController.GridPosition + Vector2Int.up)
+        );
         battleStatusWorldUI?.SetCombatVisible(true);
         CurrentEnemy.FacePlayer(playerController.GridPosition);
         EncounterStarted?.Invoke(enemy);
@@ -207,6 +210,27 @@ public class EncounterController : MonoBehaviour
         }
 
         BeginPlayerTurn();
+    }
+
+    private static bool OccupiesCell(
+        GridEntity entity,
+        Vector2Int cell
+    )
+    {
+        if (entity == null || !entity.IsPlaced)
+        {
+            return false;
+        }
+
+        foreach (Vector2Int occupiedCell in entity.GetOccupiedCells())
+        {
+            if (occupiedCell == cell)
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private void ResolveHealthChoice(bool roll)
@@ -519,6 +543,7 @@ public class EncounterController : MonoBehaviour
             AudioManager.Instance?.PlaySFX(
                 AudioName.SfxPlayerDefendHit
             );
+            ShowAttackProtectionFeedback(attackResolution);
         }
         else if (playerTookDamage)
         {
@@ -759,6 +784,7 @@ public class EncounterController : MonoBehaviour
             AudioManager.Instance?.PlaySFX(
                 AudioName.SfxPlayerDefendHit
             );
+            ShowAttackProtectionFeedback(attackResolution);
         }
         else if (playerTookDamage)
         {
@@ -800,6 +826,32 @@ public class EncounterController : MonoBehaviour
         }
 
         ResolveEnemyDefeated();
+    }
+
+    private static void ShowAttackProtectionFeedback(
+        IncomingAttackResolution resolution
+    )
+    {
+        string message = string.Empty;
+        if (resolution.BlockedByShield > 0)
+        {
+            message = GameLocalization.Get(
+                "battle.item.shield_blocked",
+                resolution.BlockedByShield
+            );
+        }
+
+        if (resolution.NegatedByHeart)
+        {
+            string negatedMessage = GameLocalization.Get(
+                "battle.item.attack_negated"
+            );
+            message = string.IsNullOrEmpty(message)
+                ? negatedMessage
+                : $"{message}\n{negatedMessage}";
+        }
+
+        ToastPanel.Show(message);
     }
 
     private void ResolveEnemyDefeated()

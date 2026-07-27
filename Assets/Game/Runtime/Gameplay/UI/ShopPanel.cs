@@ -337,7 +337,7 @@ public sealed class ShopPanel : UIPanel
         }
         if (numberText != null)
         {
-            RefreshNumber();
+            numberText.text = GameLocalization.Get("exchange.prompt");
         }
         if (leaveButton != null)
         {
