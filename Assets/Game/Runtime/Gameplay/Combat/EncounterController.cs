@@ -44,8 +44,6 @@ public class EncounterController : MonoBehaviour
     private int successfulGreedAttempts;
     private int currentGreedyWinnings;
     private bool hasBrokenMirror;
-    private int consecutiveGreedFailures;
-    private int consecutiveGreedSuccesses;
     private bool greedChosenThisBattle;
     private bool hasUsedStruggle;
     private int battleRound;
@@ -88,8 +86,6 @@ public class EncounterController : MonoBehaviour
         successfulGreedAttempts = 0;
         currentGreedyWinnings = 0;
         hasBrokenMirror = false;
-        consecutiveGreedFailures = 0;
-        consecutiveGreedSuccesses = 0;
         greedChosenThisBattle = false;
         hasUsedStruggle = false;
         battleRound = 0;
@@ -835,10 +831,6 @@ public class EncounterController : MonoBehaviour
         currentGreedyWinnings = 0;
         greedChosenThisBattle = false;
         hasBrokenMirror = HasBrokenMirror();
-        if (HasAnyRelic())
-        {
-            consecutiveGreedFailures = 0;
-        }
         CurrentEnemy = null;
         battleStatusWorldUI?.SetCombatVisible(false);
         defeatedEnemy.ReleaseAndDestroy();
@@ -859,7 +851,7 @@ public class EncounterController : MonoBehaviour
                 battleLoot,
                 defeatedEnemy.Definition.DisplayName,
                 itemDropSummary,
-                GetInitialGreedySuccessChance(),
+                GetEffectiveGreedySuccessChance(),
                 GetEffectiveGreedyMultiplier(),
                 ResolveRewardChoice,
                 CompleteReward
@@ -950,7 +942,7 @@ public class EncounterController : MonoBehaviour
             greedChosenThisBattle = true;
         }
         float effectiveChance = isInitialGreed
-            ? GetInitialGreedySuccessChance()
+            ? GetEffectiveGreedySuccessChance()
             : GetMirrorAdditionalGreedChance(
                 successfulGreedAttempts
             );
@@ -959,18 +951,6 @@ public class EncounterController : MonoBehaviour
         if (!succeeded)
         {
             AudioManager.Instance?.PlaySFX(AudioName.UiGreedFail);
-            if (isInitialGreed)
-            {
-                consecutiveGreedSuccesses = 0;
-                if (!HasAnyRelic())
-                {
-                    consecutiveGreedFailures++;
-                }
-                else
-                {
-                    consecutiveGreedFailures = 0;
-                }
-            }
             rewardChoiceResolved = true;
             lockedRewardResult = new BattleRewardResult(
                 choice,
@@ -981,12 +961,6 @@ public class EncounterController : MonoBehaviour
         }
 
         AudioManager.Instance?.PlaySFX(AudioName.UiGreedSuccess);
-        if (isInitialGreed)
-        {
-            consecutiveGreedFailures = 0;
-            consecutiveGreedSuccesses++;
-        }
-
         int independentGain = Mathf.FloorToInt(
             currentBattleLoot * effectiveMultiplier
         );
@@ -1109,41 +1083,6 @@ public class EncounterController : MonoBehaviour
             )
             : 0f;
         return Mathf.Clamp(greedySuccessChance + bonus, 0f, 0.9f);
-    }
-
-    private float GetInitialGreedySuccessChance()
-    {
-        if (consecutiveGreedSuccesses >= 2)
-        {
-            return 0f;
-        }
-
-        if (!HasAnyRelic() && consecutiveGreedFailures >= 2)
-        {
-            return 1f;
-        }
-
-        return GetEffectiveGreedySuccessChance();
-    }
-
-    private bool HasAnyRelic()
-    {
-        if (playerInventory == null)
-        {
-            return false;
-        }
-
-        foreach (CollectibleStack stack in playerInventory.Stacks)
-        {
-            if (stack?.Definition != null &&
-                stack.Count > 0 &&
-                stack.Definition.Kind == CollectibleKind.Relic)
-            {
-                return true;
-            }
-        }
-
-        return false;
     }
 
     private float GetEffectiveGreedyMultiplier()

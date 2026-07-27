@@ -32,6 +32,7 @@ public sealed class GameOverRequest
 public class GameOverPanel : UIPanel
 {
     [SerializeField] private Image titleImage;
+    [SerializeField] private TMP_Text winTitleText;
     [SerializeField] private TMP_Text reasonText;
     [SerializeField] private Button retryButton;
     [SerializeField] private Button titleButton;
@@ -41,6 +42,7 @@ public class GameOverPanel : UIPanel
     private GameOverRequest request;
     private bool submitted;
     private Coroutine titleAnimation;
+    private Graphic activeTitle;
     private Vector3 titleRestingScale = Vector3.one;
     private Color titleRestingColor = Color.white;
 
@@ -48,11 +50,6 @@ public class GameOverPanel : UIPanel
     {
         retryButton?.onClick.AddListener(Retry);
         titleButton?.onClick.AddListener(ReturnToTitle);
-        if (titleImage != null)
-        {
-            titleRestingScale = titleImage.rectTransform.localScale;
-            titleRestingColor = titleImage.color;
-        }
     }
 
     public override void OnOpen(object data = null)
@@ -60,6 +57,10 @@ public class GameOverPanel : UIPanel
         request = data as GameOverRequest;
         submitted = false;
         SetButtonsInteractable(true);
+        // Keep the actionable controls above the decorative strips. The strips
+        // become taller relative to the panel on some Windows aspect ratios.
+        retryButton?.transform.SetAsLastSibling();
+        titleButton?.transform.SetAsLastSibling();
         UILocalization.SetButtonText(retryButton, "game_over.retry");
         UILocalization.SetButtonText(titleButton, "game_over.return_title");
 
@@ -67,6 +68,20 @@ public class GameOverPanel : UIPanel
         {
             Debug.LogError("GameOverPanel received invalid data.", this);
             return;
+        }
+
+        bool isVictory = !string.IsNullOrEmpty(request.Title);
+        titleImage?.gameObject.SetActive(!isVictory);
+        winTitleText?.gameObject.SetActive(isVictory);
+        if (isVictory && winTitleText != null)
+        {
+            winTitleText.text = request.Title;
+        }
+        activeTitle = isVictory ? (Graphic)winTitleText : titleImage;
+        if (activeTitle != null)
+        {
+            titleRestingScale = activeTitle.rectTransform.localScale;
+            titleRestingColor = activeTitle.color;
         }
 
         if (reasonText != null)
@@ -131,7 +146,7 @@ public class GameOverPanel : UIPanel
     private void PlayTitleAnimation()
     {
         StopTitleAnimation();
-        if (titleImage == null)
+        if (activeTitle == null)
         {
             return;
         }
@@ -141,12 +156,12 @@ public class GameOverPanel : UIPanel
 
     private IEnumerator AnimateTitle()
     {
-        RectTransform rectTransform = titleImage.rectTransform;
+        RectTransform rectTransform = activeTitle.rectTransform;
         Vector3 startScale = titleRestingScale * titleStartScale;
         Color color = titleRestingColor;
         rectTransform.localScale = startScale;
         color.a = 0f;
-        titleImage.color = color;
+        activeTitle.color = color;
 
         if (titleFadeDuration <= 0f)
         {
@@ -173,7 +188,7 @@ public class GameOverPanel : UIPanel
                 titleRestingColor.a,
                 eased
             );
-            titleImage.color = color;
+            activeTitle.color = color;
             yield return null;
         }
 
@@ -193,13 +208,13 @@ public class GameOverPanel : UIPanel
 
     private void RestoreTitlePresentation()
     {
-        if (titleImage == null)
+        if (activeTitle == null)
         {
             return;
         }
 
-        titleImage.rectTransform.localScale = titleRestingScale;
-        titleImage.color = titleRestingColor;
+        activeTitle.rectTransform.localScale = titleRestingScale;
+        activeTitle.color = titleRestingColor;
     }
 
     private void OnDestroy()

@@ -57,7 +57,7 @@
         "battle.reward.prompt": "Obtained {0} loot. Choose Greedy Appraisal?",
         "battle.reward.additional_prompt": "Too easy! Is that all? Care to gamble again?",
         "battle.reward.button.greedy": "Greedy",
-        "battle.reward.greedy_description": "50% chance to gain 2× the loot; 50% chance to lose all loot from this round (items are kept). Greedy will always succeed after a failure.",
+        "battle.reward.greedy_description": "50% chance to gain 2.5× the loot; 50% chance to lose all loot from this round (items are kept).",
         "battle.reward.button.safe": "Safe",
         "battle.reward.safe_description": "Guaranteed 100% of this round's loot.",
         "battle.reward.button.again": "Greedy Again",
