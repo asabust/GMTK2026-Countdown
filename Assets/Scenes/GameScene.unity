@@ -426,6 +426,10 @@ PrefabInstance:
       propertyPath: maximumRestore
       value: 5
       objectReference: {fileID: 0}
+    - target: {fileID: 4020915483320138129, guid: d648868efb96247eaa9577bfdc2a4cb7, type: 3}
+      propertyPath: minimumRestore
+      value: 4
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
@@ -1858,7 +1862,7 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: 541675356810188108, guid: d648868efb96247eaa9577bfdc2a4cb7, type: 3}
       propertyPath: m_Name
-      value: TestCampfire5
+      value: TestCampfire6
       objectReference: {fileID: 0}
     - target: {fileID: 2361937833003825949, guid: d648868efb96247eaa9577bfdc2a4cb7, type: 3}
       propertyPath: m_LocalPosition.x
@@ -1902,6 +1906,10 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 4020915483320138129, guid: d648868efb96247eaa9577bfdc2a4cb7, type: 3}
       propertyPath: maximumRestore
+      value: 6
+      objectReference: {fileID: 0}
+    - target: {fileID: 4020915483320138129, guid: d648868efb96247eaa9577bfdc2a4cb7, type: 3}
+      propertyPath: minimumRestore
       value: 5
       objectReference: {fileID: 0}
     m_RemovedComponents: []
@@ -2082,6 +2090,10 @@ PrefabInstance:
     - target: {fileID: 4020915483320138129, guid: d648868efb96247eaa9577bfdc2a4cb7, type: 3}
       propertyPath: maximumRestore
       value: 5
+      objectReference: {fileID: 0}
+    - target: {fileID: 4020915483320138129, guid: d648868efb96247eaa9577bfdc2a4cb7, type: 3}
+      propertyPath: minimumRestore
+      value: 4
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -7893,7 +7905,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 4020915483320138129, guid: d648868efb96247eaa9577bfdc2a4cb7, type: 3}
       propertyPath: minimumRestore
-      value: 3
+      value: 2
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -8089,7 +8101,7 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: 541675356810188108, guid: d648868efb96247eaa9577bfdc2a4cb7, type: 3}
       propertyPath: m_Name
-      value: TestCampfire3
+      value: TestCampfire4
       objectReference: {fileID: 0}
     - target: {fileID: 2361937833003825949, guid: d648868efb96247eaa9577bfdc2a4cb7, type: 3}
       propertyPath: m_LocalPosition.x
@@ -8133,7 +8145,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 4020915483320138129, guid: d648868efb96247eaa9577bfdc2a4cb7, type: 3}
       propertyPath: maximumRestore
-      value: 3
+      value: 4
       objectReference: {fileID: 0}
     - target: {fileID: 4020915483320138129, guid: d648868efb96247eaa9577bfdc2a4cb7, type: 3}
       propertyPath: minimumRestore
@@ -8723,7 +8735,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 4020915483320138129, guid: d648868efb96247eaa9577bfdc2a4cb7, type: 3}
       propertyPath: minimumRestore
-      value: 4
+      value: 3
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -9239,7 +9251,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 4020915483320138129, guid: d648868efb96247eaa9577bfdc2a4cb7, type: 3}
       propertyPath: minimumRestore
-      value: 3
+      value: 2
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
