@@ -193,7 +193,11 @@ public class EnemyActor : MonoBehaviour, IFogVisibilityResponder
 
         EnsureWorldUI();
         int damage = GetCurrentIntentDamage();
-        worldUI?.ShowIntent(GetLockedIntentDescription(damage));
+        worldUI?.ShowIntent(
+            definition.BehaviorType,
+            CurrentIntent,
+            GetLockedIntentDescription(damage)
+        );
     }
 
     public EnemyIntentResolution ResolveLockedIntent()

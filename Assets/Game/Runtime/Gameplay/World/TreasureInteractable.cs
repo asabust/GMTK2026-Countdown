@@ -14,12 +14,18 @@ public sealed class TreasureInteractable : WorldInteractable
     [SerializeField] private SkillDefinition skill;
     [SerializeField] private CollectibleDefinition collectibleReward;
 
+    private WorldInteractionContext context;
+    private bool submitted;
+
     public TreasureRewardType RewardType => rewardType;
     public SkillDefinition Skill => skill;
     public CollectibleDefinition CollectibleReward => collectibleReward;
 
     protected override bool OpenInteraction(WorldInteractionContext interaction)
     {
+        context = interaction;
+        submitted = false;
+
         if (rewardType == TreasureRewardType.Collectible)
         {
             PlayerInventory inventory =
@@ -33,14 +39,16 @@ public sealed class TreasureInteractable : WorldInteractable
                 return false;
             }
 
-            bool received =
-                inventory.TryAdd(collectibleReward) ==
-                InventoryAddResult.Success;
-            return FinishReward(
-                interaction,
-                received,
-                collectibleReward?.DisplayName
-            );
+            CampfirePanel collectiblePanel =
+                UIManager.Instance?.Open<CampfirePanel>(
+                    new TreasureRequest(
+                        collectibleReward,
+                        inventory,
+                        ClaimCollectible,
+                        Leave
+                    )
+                );
+            return collectiblePanel != null;
         }
 
         PlayerSkillController skills =
@@ -51,33 +59,71 @@ public sealed class TreasureInteractable : WorldInteractable
                 .AddComponent<PlayerSkillController>();
         }
 
-        return FinishReward(
-            interaction,
-            skills.Learn(skill),
-            skill?.DisplayName
+        CampfirePanel skillPanel = UIManager.Instance?.Open<CampfirePanel>(
+            new TreasureRequest(
+                skill,
+                skills,
+                LearnSkill,
+                Leave
+            )
         );
+        return skillPanel != null;
     }
 
-    protected override void CloseInteraction() { }
-
-    private bool FinishReward(
-        WorldInteractionContext interaction,
-        bool received,
-        string rewardName
-    )
+    protected override void CloseInteraction()
     {
-        if (!received)
+        UIManager.Instance?.Close<CampfirePanel>();
+        context = null;
+        submitted = false;
+    }
+
+    private bool ClaimCollectible()
+    {
+        if (submitted || context == null)
         {
-            ToastPanel.Show(GameLocalization.Get(
-                "treasure.receive_failed"
-            ));
             return false;
         }
 
-        ToastPanel.Show(GameLocalization.Get(
-            "treasure.received_kind",
-            rewardName
-        ));
+        PlayerInventory inventory =
+            context.Player.GetComponent<PlayerInventory>();
+        bool received =
+            inventory != null &&
+            inventory.TryAdd(collectibleReward) ==
+            InventoryAddResult.Success;
+        return FinishReward(received);
+    }
+
+    private bool LearnSkill()
+    {
+        if (submitted || context == null)
+        {
+            return false;
+        }
+
+        PlayerSkillController skills =
+            context.Player.GetComponent<PlayerSkillController>();
+        return FinishReward(skills != null && skills.Learn(skill));
+    }
+
+    private void Leave()
+    {
+        if (submitted || context == null)
+        {
+            return;
+        }
+
+        submitted = true;
+        context.Complete(consume: false);
+    }
+
+    private bool FinishReward(bool received)
+    {
+        if (!received || submitted || context == null)
+        {
+            return false;
+        }
+
+        submitted = true;
         AudioManager.Instance?.PlaySFX(
             rewardType == TreasureRewardType.Skill
                 ? AudioName.UiGetSkill
@@ -85,7 +131,7 @@ public sealed class TreasureInteractable : WorldInteractable
                     ? AudioName.UiGetCollectible
                     : AudioName.UiGetItem
         );
-        interaction.Complete();
+        context.Complete();
         return true;
     }
 }

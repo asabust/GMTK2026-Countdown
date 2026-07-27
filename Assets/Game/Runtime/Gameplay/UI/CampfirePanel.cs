@@ -93,6 +93,7 @@ public sealed class CampfirePanel : UIPanel
         submitted = false;
         SetButtonsInteractable(true);
         UILocalization.SetButtonText(leaveButton, "common.leave");
+        leaveButton?.gameObject.SetActive(treasureRequest == null);
 
         if (request == null && treasureRequest == null)
         {
@@ -215,23 +216,14 @@ public sealed class CampfirePanel : UIPanel
         if (titleText != null)
         {
             titleText.text = skill != null
-                ? GameLocalization.Get("treasure.title_named", skill.DisplayName)
+                ? skill.DisplayName
                 : GameLocalization.Get("treasure.title");
         }
         if (descriptionText != null)
         {
-            string damage = skill != null && skill.BaseDamage > 0
-                ? GameLocalization.Get("battle.damage_suffix", skill.BaseDamage)
-                : string.Empty;
             descriptionText.text = skill == null
                 ? GameLocalization.Get("treasure.skill_missing")
-                : GameLocalization.Get(
-                    "treasure.skill_description",
-                    skill.NumberCost,
-                    damage,
-                    skill.CooldownTurns,
-                    skill.Description
-                );
+                : skill.Description;
         }
         if (owned)
         {
@@ -251,6 +243,7 @@ public sealed class CampfirePanel : UIPanel
         }
         if (leaveButton != null)
         {
+            leaveButton.gameObject.SetActive(owned || skill == null);
             leaveButton.interactable = true;
         }
     }
@@ -272,22 +265,14 @@ public sealed class CampfirePanel : UIPanel
         if (titleText != null)
         {
             titleText.text = collectible != null
-                ? GameLocalization.Get(
-                    "treasure.title_named",
-                    collectible.DisplayName
-                )
+                ? collectible.DisplayName
                 : GameLocalization.Get("treasure.title");
         }
         if (descriptionText != null)
         {
             descriptionText.text = collectible == null
                 ? GameLocalization.Get("treasure.collectible_missing")
-                : GameLocalization.Get(
-                    "common.kind_description",
-                    kind,
-                    collectible.DisplayName,
-                    collectible.Description
-                );
+                : collectible.Description;
         }
         if (!canClaim)
         {
@@ -315,6 +300,7 @@ public sealed class CampfirePanel : UIPanel
         }
         if (leaveButton != null)
         {
+            leaveButton.gameObject.SetActive(!canClaim);
             leaveButton.interactable = true;
         }
     }
