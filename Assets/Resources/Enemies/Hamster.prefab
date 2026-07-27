@@ -64,7 +64,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   definition: {fileID: 11400000, guid: 4c2759a6237b4a18958dff0c73448a42, type: 2}
   worldUIPrefab: {fileID: 0}
-  worldUIOffset: {x: 0, y: 0.5, z: 0}
+  worldUIOffset: {x: 0, y: 0.77, z: 0}
   idleAnimationState: hamsterIdle
   attackAnimationState: hamster_attack
   specialAnimationState: hamsterIdle

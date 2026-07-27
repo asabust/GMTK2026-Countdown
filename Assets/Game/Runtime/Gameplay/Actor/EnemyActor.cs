@@ -134,7 +134,7 @@ public class EnemyActor : MonoBehaviour, IFogVisibilityResponder
         }
 
         characterSpriteRenderer.flipX =
-            playerGridPosition.x < gridObject.GridPosition.x;
+            playerGridPosition.x > gridObject.GridPosition.x;
     }
 
     public void LockFirstIntent()
