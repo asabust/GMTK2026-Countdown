@@ -156,6 +156,25 @@ public sealed class PlayerRunStats : MonoBehaviour
         }
     }
 
+    public void ClearBattleItemEffects()
+    {
+        bool changed =
+            timedAttackBonuses.Count > 0 ||
+            TimedAttackBonus > 0 ||
+            NegateNextAttack ||
+            NextEnemyPhaseShield > 0;
+        if (!changed)
+        {
+            return;
+        }
+
+        timedAttackBonuses.Clear();
+        TimedAttackBonus = 0;
+        NegateNextAttack = false;
+        NextEnemyPhaseShield = 0;
+        Changed?.Invoke();
+    }
+
     public IReadOnlyList<int> GetTimedAttackBonusDurations()
     {
         List<int> durations = new(timedAttackBonuses.Count);

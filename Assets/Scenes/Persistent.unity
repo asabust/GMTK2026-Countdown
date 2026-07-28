@@ -949,7 +949,7 @@ MonoBehaviour:
   enemyActionDuration: 0.45
   autoPassDelay: 0.7
   greedySuccessChance: 0.5
-  greedyMultiplier: 2.2
+  greedyMultiplier: 2.5
 --- !u!114 &1104470236
 MonoBehaviour:
   m_ObjectHideFlags: 0

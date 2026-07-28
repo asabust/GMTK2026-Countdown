@@ -178,6 +178,7 @@ public class EncounterController : MonoBehaviour
             return;
         }
 
+        playerRunStats?.ClearBattleItemEffects();
         CurrentEnemy = enemy;
         hasUsedStruggle = false;
         battleRound = 0;
@@ -719,7 +720,9 @@ public class EncounterController : MonoBehaviour
         {
             SetPhase(EncounterPhase.ResolvingEnemyAction);
             defeatedBoss.ShowIntentResolution(
-                "钟声未止：进入第二阶段，玩家先行动"
+                GameLocalization.Get(
+                    "enemy.action.boss_phase_transition"
+                )
             );
             enemyTurnRoutine = StartCoroutine(
                 ResolveBossPhaseTransition(defeatedBoss)
