@@ -21,6 +21,10 @@
 3. `Assets/GameData/database.xlsx` 是本地化源表；`Assets/Resources/GameData/database.json` 是运行时导出结果。
 4. 本 GDD 用于快速理解、维护和定位；修改游戏后必须同步更新本文件。
 
+关卡摆放、Inspector 参数、本地化、音频和调试操作请查阅 [《策划配置与关卡编辑指南》](Designer_Config_and_Level_Guide.md)。
+
+查找具体文本 Key、占位符和当前引用状态请查阅 [《本地化 Key 字典》](Localization_Key_Dictionary.md)。
+
 ---
 
 ## 0. 一页速查

@@ -50,12 +50,23 @@ public sealed class CampfireInteractable : WorldInteractable
             minimumRestore,
             maximumRestore
         );
-        context.NumberResource?.Add(
+        NumberResource numberResource = context.NumberResource;
+        int previousValue = numberResource != null
+            ? numberResource.CurrentValue
+            : 0;
+        numberResource?.Add(
             restoreAmount,
             NumberChangeReason.Campfire,
             context.WorldPosition
         );
+        int actualRestore = numberResource != null
+            ? Mathf.Max(0, numberResource.CurrentValue - previousValue)
+            : 0;
         context.Complete();
+        ToastPanel.Show(GameLocalization.Get(
+            "campfire.result",
+            actualRestore
+        ));
     }
 
     private void Leave()

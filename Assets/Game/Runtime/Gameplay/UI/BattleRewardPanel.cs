@@ -41,6 +41,7 @@ public sealed class BattleRewardRequest
         int resolvedMaxHP,
         int battleRound,
         EnemyRewardMode rewardMode,
+        EnemyBehaviorType enemyBehaviorType,
         int battleLoot,
         string enemyName,
         string itemDropSummary,
@@ -53,6 +54,7 @@ public sealed class BattleRewardRequest
         ResolvedMaxHP = resolvedMaxHP;
         BattleRound = battleRound;
         RewardMode = rewardMode;
+        EnemyBehaviorType = enemyBehaviorType;
         BattleLoot = battleLoot;
         EnemyName = enemyName;
         ItemDropSummary = itemDropSummary;
@@ -65,6 +67,7 @@ public sealed class BattleRewardRequest
     public int ResolvedMaxHP { get; }
     public int BattleRound { get; }
     public EnemyRewardMode RewardMode { get; }
+    public EnemyBehaviorType EnemyBehaviorType { get; }
     public int BattleLoot { get; }
     public string EnemyName { get; }
     public string ItemDropSummary { get; }
@@ -132,10 +135,24 @@ public class BattleRewardPanel : UIPanel
             greedyGain,
             100 - successPercent
         );
-        resultText.text = GameLocalization.Get(
+        string rewardPrompt = GameLocalization.Get(
             "battle.reward.prompt",
             request.EnemyName
         );
+        if (request.EnemyBehaviorType == EnemyBehaviorType.HorrorBox &&
+            !string.IsNullOrWhiteSpace(request.ItemDropSummary))
+        {
+            rewardPrompt = string.Join(
+                "\n",
+                rewardPrompt,
+                GameLocalization.Get(
+                    "enemy.world.reward",
+                    request.ItemDropSummary
+                ),
+                GameLocalization.Get("battle.reward.item_safety")
+            );
+        }
+        resultText.text = rewardPrompt;
     }
 
     public override void OnClose()

@@ -924,6 +924,7 @@ public class EncounterController : MonoBehaviour
                 defeatedEnemy.ResolvedMaxHP,
                 resolvedRound,
                 defeatedEnemy.Definition.RewardMode,
+                defeatedEnemy.Definition.BehaviorType,
                 battleLoot,
                 defeatedEnemy.Definition.DisplayName,
                 itemDropSummary,
@@ -984,9 +985,9 @@ public class EncounterController : MonoBehaviour
         }
 
         return results.Count > 0
-            ? GameLocalization.Get(
-                "battle.drop.summary",
-                string.Join(GameLocalization.Get("common.list_separator"), results)
+            ? string.Join(
+                GameLocalization.Get("common.list_separator"),
+                results
             )
             : string.Empty;
     }
