@@ -655,6 +655,7 @@
         "treasure.maximum_reached": "{0}の所持上限です",
         "treasure.cannot_claim_kind": "今はこの{0}を受け取れません",
         "exchange.title": "交換",
+        "exchange.item_description": "【{0}】{1}\n  {2}\n  \n「{1}」を渡して、別のアイテムとランダムに交換しますか？",
         "exchange.no_alternative": "交換できる別のアイテムがありません",
         "exchange.failed": "交換に失敗しました。選び直してください",
         "exchange.success": "{0}を{1}と交換しました",
