@@ -197,7 +197,7 @@ Packages/                      Unity Package 配置
 4. 执行 Build。
 5. 在目标平台完成一次完整流程测试。
 
-当前本地构建目录为 `WebBuile`、`Windows` 和 `MacBuild`，均已被 Git 忽略。
+当前本地构建目录为 `WebBuild`、`WindowsBuild` 和 `MacBuild`，均已被 Git 忽略。
 
 桌面版可以通过设置面板退出程序。WebGL 浏览器通常不允许游戏主动关闭标签页，因此退出按钮可能没有可见效果。
 

@@ -105,7 +105,6 @@ InitTestScene*.unity*
 # Auto-generated cache in Assets folder
 /[Aa]ssets/[Ss]ceneDependencyCache*
 /.idea
-/WebBuile
-/Windows
 /MacBuild
-20260727-232029.jpeg
+/WebBuild
+/WindowsBuild
