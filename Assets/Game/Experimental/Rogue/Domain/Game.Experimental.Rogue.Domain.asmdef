@@ -1,0 +1,14 @@
+{
+    "name": "Game.Experimental.Rogue.Domain",
+    "rootNamespace": "Game.Experimental.Rogue.Domain",
+    "references": [],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": false,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": true
+}
