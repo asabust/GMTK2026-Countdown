@@ -6,6 +6,7 @@ namespace Game.Experimental.Rogue.Domain
     {
         Ongoing,
         FloorCleared,
+        FloorCompleted,
         PlayerDefeated
     }
 
@@ -47,6 +48,27 @@ namespace Game.Experimental.Rogue.Domain
         public ActionResolution PlayerResolution { get; }
         public RogueMoveResult? PlayerMove { get; }
         public WaitActionResult? PlayerWait { get; }
+        public IReadOnlyList<EnemyTurnResult> EnemyTurns { get; }
+        public RogueGameProgress Progress { get; }
+    }
+
+    public readonly struct RogueActionRoundResult<TActionResult>
+    {
+        public RogueActionRoundResult(
+            TActionResult playerAction,
+            ActionResolution playerResolution,
+            IReadOnlyList<EnemyTurnResult> enemyTurns,
+            RogueGameProgress progress
+        )
+        {
+            PlayerAction = playerAction;
+            PlayerResolution = playerResolution;
+            EnemyTurns = enemyTurns;
+            Progress = progress;
+        }
+
+        public TActionResult PlayerAction { get; }
+        public ActionResolution PlayerResolution { get; }
         public IReadOnlyList<EnemyTurnResult> EnemyTurns { get; }
         public RogueGameProgress Progress { get; }
     }

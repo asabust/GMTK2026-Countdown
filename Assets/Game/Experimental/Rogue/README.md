@@ -13,6 +13,9 @@ behaviour of the completed game until the prototype direction is approved.
 The prototype scene is `Assets/Scenes/RoguePrototype.unity`. It is deliberately
 excluded from Build Settings.
 
+The reusable rule contract is documented in
+`Docs/Rogue_Domain_Rules.md`.
+
 ## First vertical slice
 
 1. Submit a move or wait command.
@@ -46,3 +49,13 @@ has proved the direction.
 - Enemies deterministically approach the player by one cardinal cell, try
   the other axis when blocked, and wait when neither approach is possible.
 - Domain progress reports ongoing play, a cleared floor, or player defeat.
+- A cleared floor can be completed only from its walkable exit cell.
+- Actors may carry capacity-limited inventories; ground items can be picked
+  up and inventory items can be dropped on the current cell.
+- Healing potions restore health, are consumed only when effective, and all
+  inventory actions obey turn ownership.
+- Visibility is recalculated from the player with deterministic wall
+  occlusion while explored cells remain remembered.
+- Stable player turns can produce serializer-neutral snapshots containing
+  terrain, actors, health, inventories, ground items, exit, round order, and
+  exploration; snapshots can restore an equivalent `RogueGameState`.

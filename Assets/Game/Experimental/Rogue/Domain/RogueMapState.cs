@@ -13,6 +13,10 @@ namespace Game.Experimental.Rogue.Domain
         private readonly Dictionary<ActorId, ActorState> actorsById = new();
         private readonly Dictionary<GridPosition, ActorId> actorsByPosition =
             new();
+        private readonly Dictionary<ItemId, GroundItemState> groundItemsById =
+            new();
+        private readonly Dictionary<GridPosition, List<ItemId>>
+            groundItemIdsByPosition = new();
 
         public RogueMapState(int width, int height)
         {
@@ -48,6 +52,24 @@ namespace Game.Experimental.Rogue.Domain
         public int Width { get; }
         public int Height { get; }
         public IReadOnlyCollection<ActorState> Actors => actorsById.Values;
+        public IReadOnlyCollection<GroundItemState> GroundItems =>
+            groundItemsById.Values;
+        public GridPosition? FloorExit { get; private set; }
+        public bool HasEnemies
+        {
+            get
+            {
+                foreach (ActorState actor in actorsById.Values)
+                {
+                    if (actor.Faction == ActorFaction.Enemy)
+                    {
+                        return true;
+                    }
+                }
+
+                return false;
+            }
+        }
 
         public bool IsInBounds(GridPosition position) =>
             position.X >= 0 &&
@@ -70,6 +92,90 @@ namespace Game.Experimental.Rogue.Domain
             }
 
             walkable[position.X, position.Y] = value;
+        }
+
+        public void SetFloorExit(GridPosition position)
+        {
+            if (!IsWalkable(position))
+            {
+                throw new ArgumentException(
+                    "Floor exit must be on a walkable cell.",
+                    nameof(position)
+                );
+            }
+
+            FloorExit = position;
+        }
+
+        public bool TryPlaceItem(ItemState item, GridPosition position)
+        {
+            if (item == null ||
+                !IsWalkable(position) ||
+                groundItemsById.ContainsKey(item.Id))
+            {
+                return false;
+            }
+
+            GroundItemState groundItem = new(item, position);
+            groundItemsById.Add(item.Id, groundItem);
+            if (!groundItemIdsByPosition.TryGetValue(
+                    position,
+                    out List<ItemId> itemIds
+                ))
+            {
+                itemIds = new List<ItemId>();
+                groundItemIdsByPosition.Add(position, itemIds);
+            }
+
+            itemIds.Add(item.Id);
+            return true;
+        }
+
+        public IReadOnlyList<ItemState> GetItemsAt(GridPosition position)
+        {
+            if (!groundItemIdsByPosition.TryGetValue(
+                    position,
+                    out List<ItemId> itemIds
+                ))
+            {
+                return Array.Empty<ItemState>();
+            }
+
+            List<ItemState> items = new(itemIds.Count);
+            foreach (ItemId itemId in itemIds)
+            {
+                items.Add(groundItemsById[itemId].Item);
+            }
+
+            return items;
+        }
+
+        public bool TryTakeItem(
+            GridPosition position,
+            ItemId itemId,
+            out ItemState item
+        )
+        {
+            item = null;
+            if (!groundItemsById.TryGetValue(
+                    itemId,
+                    out GroundItemState groundItem
+                ) ||
+                groundItem.Position != position)
+            {
+                return false;
+            }
+
+            item = groundItem.Item;
+            groundItemsById.Remove(itemId);
+            List<ItemId> itemIds = groundItemIdsByPosition[position];
+            itemIds.Remove(itemId);
+            if (itemIds.Count == 0)
+            {
+                groundItemIdsByPosition.Remove(position);
+            }
+
+            return true;
         }
 
         public bool TryAddActor(ActorState actor)

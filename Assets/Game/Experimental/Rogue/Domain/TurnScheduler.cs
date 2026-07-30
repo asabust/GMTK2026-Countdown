@@ -130,5 +130,18 @@ namespace Game.Experimental.Rogue.Domain
                 );
             }
         }
+
+        internal void RestoreStableRound(int roundNumber)
+        {
+            if (roundNumber <= 0)
+            {
+                throw new ArgumentOutOfRangeException(nameof(roundNumber));
+            }
+
+            pendingEnemies.Clear();
+            RoundNumber = roundNumber;
+            Phase = TurnPhase.AwaitingPlayer;
+            CurrentActor = PlayerId;
+        }
     }
 }

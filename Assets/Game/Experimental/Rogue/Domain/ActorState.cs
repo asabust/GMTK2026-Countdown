@@ -19,7 +19,9 @@ namespace Game.Experimental.Rogue.Domain
             ActorFaction faction,
             GridPosition position,
             int maximumHealth = 1,
-            int attackPower = 1
+            int attackPower = 1,
+            int inventoryCapacity = 0,
+            int? currentHealth = null
         )
         {
             if (string.IsNullOrWhiteSpace(id.Value))
@@ -46,12 +48,22 @@ namespace Game.Experimental.Rogue.Domain
                 );
             }
 
+            int startingHealth = currentHealth ?? maximumHealth;
+            if (startingHealth <= 0 || startingHealth > maximumHealth)
+            {
+                throw new ArgumentOutOfRangeException(
+                    nameof(currentHealth),
+                    "Current health must be within maximum health."
+                );
+            }
+
             Id = id;
             Faction = faction;
             Position = position;
             MaximumHealth = maximumHealth;
-            CurrentHealth = maximumHealth;
+            CurrentHealth = startingHealth;
             AttackPower = attackPower;
+            Inventory = new InventoryState(inventoryCapacity);
         }
 
         public ActorId Id { get; }
@@ -60,6 +72,7 @@ namespace Game.Experimental.Rogue.Domain
         public int MaximumHealth { get; }
         public int CurrentHealth { get; private set; }
         public int AttackPower { get; }
+        public InventoryState Inventory { get; }
         public bool IsDefeated => CurrentHealth == 0;
 
         internal int ApplyDamage(int amount)
@@ -75,6 +88,24 @@ namespace Game.Experimental.Rogue.Domain
             int previousHealth = CurrentHealth;
             CurrentHealth = Math.Max(0, CurrentHealth - amount);
             return previousHealth - CurrentHealth;
+        }
+
+        internal int Heal(int amount)
+        {
+            if (amount < 0)
+            {
+                throw new ArgumentOutOfRangeException(
+                    nameof(amount),
+                    "Healing cannot be negative."
+                );
+            }
+
+            int previousHealth = CurrentHealth;
+            CurrentHealth = Math.Min(
+                MaximumHealth,
+                CurrentHealth + amount
+            );
+            return CurrentHealth - previousHealth;
         }
     }
 }
