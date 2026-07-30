@@ -41,3 +41,8 @@ has proved the direction.
 - Defeated actors are removed from both the map and pending enemy turns.
 - `RogueGameState` is the single entry point that coordinates movement,
   bump attacks, death cleanup, and turn advancement.
+- Waiting consumes a turn without changing position.
+- A submitted player move or wait can resolve the complete enemy phase.
+- Enemies deterministically approach the player by one cardinal cell, try
+  the other axis when blocked, and wait when neither approach is possible.
+- Domain progress reports ongoing play, a cleared floor, or player defeat.
