@@ -17,7 +17,8 @@ namespace Game.Experimental.Rogue.Domain
         NotActorsTurn,
         ExitUnavailable,
         NotOnExit,
-        EnemiesRemain
+        EnemiesRemain,
+        GameEnded
     }
 
     public readonly struct DescendActionResult

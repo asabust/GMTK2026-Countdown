@@ -14,7 +14,8 @@ namespace Game.Experimental.Rogue.Domain
     {
         Waited,
         InvalidActor,
-        NotActorsTurn
+        NotActorsTurn,
+        GameEnded
     }
 
     public readonly struct WaitActionResult

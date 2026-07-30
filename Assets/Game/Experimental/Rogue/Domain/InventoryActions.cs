@@ -18,7 +18,8 @@ namespace Game.Experimental.Rogue.Domain
         InvalidActor,
         NotActorsTurn,
         ItemNotFound,
-        InventoryFull
+        InventoryFull,
+        GameEnded
     }
 
     public readonly struct PickupActionResult
@@ -60,7 +61,8 @@ namespace Game.Experimental.Rogue.Domain
         InvalidActor,
         NotActorsTurn,
         ItemNotFound,
-        NoEffect
+        NoEffect,
+        GameEnded
     }
 
     public readonly struct UseItemActionResult
@@ -104,7 +106,8 @@ namespace Game.Experimental.Rogue.Domain
         Dropped,
         InvalidActor,
         NotActorsTurn,
-        ItemNotFound
+        ItemNotFound,
+        GameEnded
     }
 
     public readonly struct DropItemActionResult

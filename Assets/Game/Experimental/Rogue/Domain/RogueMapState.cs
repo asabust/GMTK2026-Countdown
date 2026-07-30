@@ -197,7 +197,7 @@ namespace Game.Experimental.Rogue.Domain
             return true;
         }
 
-        public bool RemoveActor(ActorId actorId)
+        internal bool RemoveActor(ActorId actorId)
         {
             if (!actorsById.TryGetValue(actorId, out ActorState actor))
             {

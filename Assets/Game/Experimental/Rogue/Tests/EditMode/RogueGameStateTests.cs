@@ -81,6 +81,102 @@ namespace Game.Experimental.Rogue.Tests
             );
         }
 
+        [Test]
+        public void CompletedFloor_RejectsFurtherMovement()
+        {
+            RogueMapState map = new(4, 4);
+            GridPosition exit = new(1, 1);
+            map.SetFloorExit(exit);
+            map.TryAddActor(new ActorState(
+                Player,
+                ActorFaction.Player,
+                exit
+            ));
+            RogueGameState game = new(map, Player);
+            game.ResolveDescend(new DescendAction(Player));
+
+            RogueMoveResult result = game.ResolveMove(
+                new MoveAction(Player, 1, 0)
+            );
+
+            Assert.That(
+                result.Move.Outcome,
+                Is.EqualTo(MoveOutcome.GameEnded)
+            );
+            Assert.That(result.Resolution.ConsumesTurn, Is.False);
+            Assert.That(map.TryGetActor(Player, out ActorState player), Is.True);
+            Assert.That(player.Position, Is.EqualTo(exit));
+        }
+
+        [Test]
+        public void DefeatedPlayer_RejectsFurtherActions()
+        {
+            RogueGameState game = CreateUnregisteredEnemyGame();
+            game.RemoveActor(Player);
+
+            WaitActionResult result = game.ResolveWait(
+                new WaitAction(Player)
+            );
+
+            Assert.That(
+                result.Outcome,
+                Is.EqualTo(WaitOutcome.GameEnded)
+            );
+            Assert.That(result.Resolution.ConsumesTurn, Is.False);
+            Assert.That(
+                game.Progress,
+                Is.EqualTo(RogueGameProgress.PlayerDefeated)
+            );
+        }
+
+        [Test]
+        public void MapEnemy_IsAutomaticallyAddedBeforePlayerTurnEnds()
+        {
+            RogueGameState game = CreateUnregisteredEnemyGame();
+
+            RogueRoundResult round = game.ResolvePlayerWaitRound(
+                new WaitAction(Player)
+            );
+
+            Assert.That(round.EnemyTurns.Count, Is.EqualTo(1));
+            Assert.That(round.EnemyTurns[0].ActorId, Is.EqualTo(Slime));
+            Assert.That(game.Turns.Enemies, Does.Contain(Slime));
+        }
+
+        [Test]
+        public void SafeActorRemoval_AlsoRemovesEnemyFromTurnRoster()
+        {
+            RogueGameState game = CreateUnregisteredEnemyGame();
+            game.RegisterEnemy(Slime);
+
+            bool removed = game.RemoveActor(Slime);
+
+            Assert.That(removed, Is.True);
+            Assert.That(game.Map.TryGetActor(Slime, out _), Is.False);
+            Assert.That(game.Turns.Enemies, Is.Empty);
+            Assert.That(
+                game.Progress,
+                Is.EqualTo(RogueGameProgress.FloorCleared)
+            );
+        }
+
+        private static RogueGameState CreateUnregisteredEnemyGame()
+        {
+            RogueMapState map = new(5, 4);
+            map.TryAddActor(new ActorState(
+                Player,
+                ActorFaction.Player,
+                new GridPosition(1, 1),
+                maximumHealth: 5
+            ));
+            map.TryAddActor(new ActorState(
+                Slime,
+                ActorFaction.Enemy,
+                new GridPosition(3, 1)
+            ));
+            return new RogueGameState(map, Player);
+        }
+
         private static RogueGameState CreateGame(
             int playerAttack,
             int slimeHealth

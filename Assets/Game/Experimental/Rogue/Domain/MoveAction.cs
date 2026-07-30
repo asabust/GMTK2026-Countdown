@@ -22,7 +22,8 @@ namespace Game.Experimental.Rogue.Domain
         BlockedByActor,
         InvalidActor,
         InvalidDirection,
-        NotActorsTurn
+        NotActorsTurn,
+        GameEnded
     }
 
     public readonly struct MoveActionResult
