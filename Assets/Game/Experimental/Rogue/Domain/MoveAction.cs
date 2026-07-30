@@ -21,7 +21,8 @@ namespace Game.Experimental.Rogue.Domain
         BlockedByTerrain,
         BlockedByActor,
         InvalidActor,
-        InvalidDirection
+        InvalidDirection,
+        NotActorsTurn
     }
 
     public readonly struct MoveActionResult
@@ -99,7 +100,10 @@ namespace Game.Experimental.Rogue.Domain
 
             if (map.TryGetActorAt(destination, out ActorState target))
             {
-                if (AreHostile(actor.Faction, target.Faction))
+                if (FactionRules.AreHostile(
+                    actor.Faction,
+                    target.Faction
+                ))
                 {
                     return new MoveActionResult(
                         MoveOutcome.MeleeAttack,
@@ -139,14 +143,6 @@ namespace Game.Experimental.Rogue.Domain
 
         private static bool IsCardinalStep(int deltaX, int deltaY) =>
             System.Math.Abs(deltaX) + System.Math.Abs(deltaY) == 1;
-
-        private static bool AreHostile(
-            ActorFaction first,
-            ActorFaction second
-        ) =>
-            first != second &&
-            first != ActorFaction.Neutral &&
-            second != ActorFaction.Neutral;
 
         private static MoveActionResult Rejected(
             MoveOutcome outcome,

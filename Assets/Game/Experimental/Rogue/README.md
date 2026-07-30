@@ -36,3 +36,8 @@ has proved the direction.
 - Walls and map boundaries reject movement without consuming a turn.
 - Moving into an empty cell updates the actor position and consumes a turn.
 - Moving into a hostile actor produces a melee-attack result without moving.
+- Actors have maximum health, current health, and attack power.
+- A cardinally adjacent hostile target takes damage equal to attack power.
+- Defeated actors are removed from both the map and pending enemy turns.
+- `RogueGameState` is the single entry point that coordinates movement,
+  bump attacks, death cleanup, and turn advancement.
