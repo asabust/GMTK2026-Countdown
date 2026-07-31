@@ -2,7 +2,8 @@
     "name": "Game.Experimental.Rogue.Unity",
     "rootNamespace": "Game.Experimental.Rogue.Unity",
     "references": [
-        "Game.Experimental.Rogue.Domain"
+        "Game.Experimental.Rogue.Domain",
+        "Unity.InputSystem"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

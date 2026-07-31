@@ -1,0 +1,20 @@
+{
+    "name": "Game.Experimental.Rogue.PlayModeTests",
+    "rootNamespace": "Game.Experimental.Rogue.PlayModeTests",
+    "references": [
+        "Game.Experimental.Rogue.Domain",
+        "Game.Experimental.Rogue.Unity"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": false,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false,
+    "optionalUnityReferences": [
+        "TestAssemblies"
+    ]
+}

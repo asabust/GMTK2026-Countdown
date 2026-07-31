@@ -27,6 +27,25 @@ The reusable rule contract is documented in
 Do not migrate the existing encounter, item, or enemy systems until this slice
 has proved the direction.
 
+## Graybox controls
+
+Open `Assets/Scenes/RoguePrototype.unity` and enter Play Mode.
+
+- Move with WASD or the arrow keys.
+- Wait with Space.
+- Pick up the item under the player with E or G.
+- Use the first inventory item with 1.
+- Descend from a cleared exit with Enter.
+- Restart the prototype with R.
+
+`RogueGameController` translates input into domain actions.
+`RogueBoardView` redraws disposable Unity objects from domain state; those
+objects never become authoritative gameplay state.
+
+The first PlayMode smoke tests cover startup rendering, movement-to-view
+synchronization, pickup rendering, and the complete clear-and-descend flow.
+They intentionally verify Unity wiring rather than duplicate domain rules.
+
 ## Current domain rules
 
 - A rejected action does not consume a turn.
